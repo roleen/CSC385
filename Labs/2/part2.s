@@ -97,18 +97,17 @@ LOOP_IN_LIST:
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
     br LOOP_FOREVER
-    
+
 ADD_TO_NEG:
     stw r8, 0(r6)
     addi r6, r6, 4
     addi r2, r2, 1
-    bne r5, r0, LOOP_IN_LIST      # Loop 10 times
-    beq r5, r0, LOOP_FOREVER
+    br LOOP_IN_LIST
 
 ADD_TO_POS:
     stw r8, 0(r7)
     addi r7, r7, 4
     addi r3, r3, 1
-    bne r5, r0, LOOP_IN_LIST      # Loop 10 times
+    br LOOP_IN_LIST
 
 LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.  
