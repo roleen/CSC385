@@ -80,6 +80,7 @@ LOOP_IN_LIST:
     ldw r4, 4(r4)           # Load the address of the next element
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
+    br LOOP_IN_LIST
     
 ADD_TO_NEG:
     stw r8, 0(r6)
