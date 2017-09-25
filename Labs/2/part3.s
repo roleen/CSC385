@@ -60,7 +60,8 @@ OUT_LIST_POSITIVE:
     #   r0 is zero, and r1 is "assembler temporary". Not used here.
     #   r2  Holds the number of negative numbers in the list
     #   r3  Holds the number of positive numbers in the list
-    #   r4  Pointer to current element in IN_LIST
+    #   r4  Pointer to current element in IN_LINKED_LIST
+    #   r5  loop counter for IN_LIST
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
     #   r8  Item
@@ -68,30 +69,30 @@ OUT_LIST_POSITIVE:
 
 .global _start
 _start:
-    # Your program here. Pseudocode and some code done for you:
     movi r2, 0              # Initialize negative numbers counter
     movi r3, 0              # Initialize positive numbers counter
-    movia r4, IN_LIST
+    movia r4, IN_LINKED_LIST
     movia r6, OUT_LIST_NEGATIVE     # Initialize Pointer to available spot in OUT_LIST_NEGATIVE
     movia r7, OUT_LIST_POSITIVE     # Initialize Pointer to available spot in OUT_LIST_POSITIVE
 
 LOOP_IN_LIST:
-    ldh r8, 0(r4)           # Load the element of IN_LIST
-    addi r4, r4, 2
+    ldw r8, 0(r4)           # Load the element of IN_LINKED_LIST
+    ldw r4, 4(r4)           # Load the address of the next element
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
-    br LOOP_FOREVER
-
+    
 ADD_TO_NEG:
     stw r8, 0(r6)
     addi r6, r6, 4
     addi r2, r2, 1
-    br LOOP_IN_LIST
+    bne r4, r0, LOOP_IN_LIST
+    br LOOP_FOREVER
 
 ADD_TO_POS:
     stw r8, 0(r7)
     addi r7, r7, 4
     addi r3, r3, 1
-    br LOOP_IN_LIST
+    bne r4, r0, LOOP_IN_LIST
+    br LOOP_FOREVER
 
 LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.  

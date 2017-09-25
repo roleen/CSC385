@@ -60,31 +60,15 @@ OUT_LIST_POSITIVE:
     #   r0 is zero, and r1 is "assembler temporary". Not used here.
     #   r2  Holds the number of negative numbers in the list
     #   r3  Holds the number of positive numbers in the list
-    # r4  Pointer to current element in IN_LIST
+    #   r4  Pointer to current element in IN_LIST
     #   r5  loop counter for IN_LIST
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
-    # r8  Item
+    #   r8  Item
     
 
 .global _start
 _start:
-    # Your program here. Pseudocode and some code done for you:
-    
-    # Begin loop to process each number
-    
-        # Process a number here:
-        #    if (number is negative) { 
-        #        insert number in OUT_LIST_NEGATIVE list
-        #        increment count of negative values (r2)
-        #    } else if (number is positive) { 
-        #        insert number in OUT_LIST_POSITIVE list
-        #        increment count of positive values (r3)
-        #    }
-        # Done processing.
-
-
-    # End loop
     movi r2, 0              # Initialize negative numbers counter
     movi r3, 0              # Initialize positive numbers counter
     movia r4, IN_LIST
