@@ -68,6 +68,7 @@ OUT_LIST_POSITIVE:
 
     #   r9  Address of the next number in the IN_LINKED_LIST
     #   r10 The next element in the IN_LINKED_LIST
+    #   r11 Address of the next element's next
 
 .global _start
 _start:
@@ -82,10 +83,8 @@ REMOVE_NEGATIVES:
     br REMOVE_NEGATIVES
 
 SKIP_ELEMENT:
-    ldw r9, 4(r9)           # Load the address of the next element
-    addi r4, r4, 4          # Increment the address of the current element to get the address of pointer to it's next
-    stw r4, r9              # Store the address of the next element's next pointer to the current element's next pointer
-    subi r4, r4, 4          # Decrement the address of the current element's next pointer so that it points to the current element
+    ldw r11, 4(r9)
+    stw r11, 4(r4)           # Store the address of the next element's next pointer to the current element's next pointer
     br REMOVE_NEGATIVES
 
 READ_LINKED_LIST:
