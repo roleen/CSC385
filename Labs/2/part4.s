@@ -65,10 +65,30 @@ OUT_LIST_POSITIVE:
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
     #   r8  Current number that we are looking at in the IN_LINKED_LIST
-    
+
+    #   r9  Address of the next number in the IN_LINKED_LIST
+    #   r10 The next element in the IN_LINKED_LIST
 
 .global _start
 _start:
+    movia r4, IN_LINKED_LIST
+
+REMOVE_NEGATIVES:
+    ldw r9, 4(r4)
+    ldw r10, 0(r9)
+    blt r10, r0, SKIP_ELEMENT       # Negative element, so we have to skip it
+    beq r10, r0, READ_LINKED_LIST   # If we have reached the end of the linked list, proceed to reading the linked list
+    ldw r4, 4(r4)                   # If positive number, move on to the next element
+    br REMOVE_NEGATIVES
+
+SKIP_ELEMENT:
+    ldw r9, 4(r9)           # Load the address of the next element
+    addi r4, r4, 4          # Increment the address of the current element to get the address of pointer to it's next
+    stw r4, r9              # Store the address of the next element's next pointer to the current element's next pointer
+    subi r4, r4, 4          # Decrement the address of the current element's next pointer so that it points to the current element
+    br REMOVE_NEGATIVES
+
+READ_LINKED_LIST:
     movi r2, 0              # Initialize negative numbers counter
     movi r3, 0              # Initialize positive numbers counter
     movia r4, IN_LINKED_LIST
@@ -81,7 +101,7 @@ LOOP_IN_LIST:
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
     br LOOP_IN_LIST
-    
+
 ADD_TO_NEG:
     stw r8, 0(r6)
     addi r6, r6, 4
@@ -96,4 +116,4 @@ ADD_TO_POS:
     bne r4, r0, LOOP_IN_LIST
     br LOOP_FOREVER
 
-LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.  
+LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.

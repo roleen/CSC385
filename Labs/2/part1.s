@@ -64,7 +64,7 @@ OUT_LIST_POSITIVE:
     #   r5  loop counter for IN_LIST
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
-    #   r8  Item
+    #   r8  Current number that we are looking at in the IN_LIST
     
 
 .global _start
