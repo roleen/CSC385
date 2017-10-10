@@ -61,6 +61,7 @@ OUT_LIST_POSITIVE:
     #   r2  Holds the number of negative numbers in the list
     #   r3  Holds the number of positive numbers in the list
     #   r4  Pointer to current element in IN_LIST
+    #   r5  loop counter for IN_LIST
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
     #   r8  Current number that we are looking at in the IN_LIST
@@ -68,20 +69,22 @@ OUT_LIST_POSITIVE:
 
 .global _start
 _start:
-    # Your program here. Pseudocode and some code done for you:
     movi r2, 0              # Initialize negative numbers counter
     movi r3, 0              # Initialize positive numbers counter
     movia r4, IN_LIST
+    movi r5, 10             # Initialize the counter for IN_LIST to 10
     movia r6, OUT_LIST_NEGATIVE     # Initialize Pointer to available spot in OUT_LIST_NEGATIVE
     movia r7, OUT_LIST_POSITIVE     # Initialize Pointer to available spot in OUT_LIST_POSITIVE
 
 LOOP_IN_LIST:
+	beq r5, r0, LOOP_FOREVER
+    subi r5, r5, 1
     ldh r8, 0(r4)           # Load the element of IN_LIST
     addi r4, r4, 2
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
     br LOOP_FOREVER
-
+    
 ADD_TO_NEG:
     stw r8, 0(r6)
     addi r6, r6, 4
@@ -95,3 +98,4 @@ ADD_TO_POS:
     br LOOP_IN_LIST
 
 LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.  
+

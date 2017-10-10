@@ -41,7 +41,7 @@ IN_LINKED_LIST:                     # Used only in Part 3 and Part 4
     K: .byte 0x01       # address K
        .byte 0x02       # address K+1
        .byte 0x03       # address K+2
-       .byte 0x04       # address K+3
+       .byte 0xf4       # address K+3
        .word 0
 
     .align 2
@@ -65,27 +65,27 @@ OUT_LIST_POSITIVE:
     #   r6  Pointer to current available position in OUT_LIST_NEGATIVE
     #   r7  Pointer to current available position in OUT_LIST_POSITIVE
     #   r8  Current number that we are looking at in the IN_LINKED_LIST
-
-    #   r9  Address of the next number in the IN_LINKED_LIST
-    #   r10 The next element in the IN_LINKED_LIST
-    #   r11 Address of the next element's next
+ 	##################MODIFY LINK LIST BELOW
+    #	r9 	Next node
+    #	r10 Next value 	
 
 .global _start
 _start:
-    movia r4, IN_LINKED_LIST
 
-REMOVE_NEGATIVES:
-    ldw r9, 4(r4)
+movia r4, IN_LINKED_LIST
+
+REMOVE_LOOP:
+	beq r4, r0, READ_LINKED_LIST
+	ldw r9, 4(r4)
     ldw r10, 0(r9)
-    blt r10, r0, SKIP_ELEMENT       # Negative element, so we have to skip it
-    beq r10, r0, READ_LINKED_LIST   # If we have reached the end of the linked list, proceed to reading the linked list
-    ldw r4, 4(r4)                   # If positive number, move on to the next element
-    br REMOVE_NEGATIVES
-
-SKIP_ELEMENT:
-    ldw r11, 4(r9)
-    stw r11, 4(r4)           # Store the address of the next element's next pointer to the current element's next pointer
-    br REMOVE_NEGATIVES
+    ble r10, r0, SKIP_NUMBER
+    ldw r4, 4(r4)
+	br REMOVE_LOOP
+    
+SKIP_NUMBER:
+	ldw r11, 4(r9)
+    stw r11, 4(r4)
+    br REMOVE_LOOP
 
 READ_LINKED_LIST:
     movi r2, 0              # Initialize negative numbers counter
@@ -95,24 +95,26 @@ READ_LINKED_LIST:
     movia r7, OUT_LIST_POSITIVE     # Initialize Pointer to available spot in OUT_LIST_POSITIVE
 
 LOOP_IN_LIST:
-    ldw r8, 0(r4)           # Load the element of IN_LINKED_LIST
-    ldw r4, 4(r4)           # Load the address of the next element
+    beq r4, r0, LOOP_FOREVER
+    ldw r8, 0(r4)           # Load the element of IN_LIST
+    ldw r4, 4(r4)
     blt r8, r0, ADD_TO_NEG
     bgt r8, r0, ADD_TO_POS
-    br LOOP_IN_LIST
-
+    beq r8, r0, LOOP_IN_LIST
+    br LOOP_FOREVER
+    
 ADD_TO_NEG:
     stw r8, 0(r6)
     addi r6, r6, 4
     addi r2, r2, 1
-    bne r4, r0, LOOP_IN_LIST
-    br LOOP_FOREVER
+    br LOOP_IN_LIST     
 
 ADD_TO_POS:
     stw r8, 0(r7)
     addi r7, r7, 4
     addi r3, r3, 1
-    bne r4, r0, LOOP_IN_LIST
-    br LOOP_FOREVER
+    br LOOP_IN_LIST   
 
-LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.
+LOOP_FOREVER: br LOOP_FOREVER                   # Loop forever.  
+
+
