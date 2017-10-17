@@ -1,6 +1,7 @@
 .equ TIMER, 0xFF202000
 .equ TIMER_IRQ, 0x1
-.equ TIME, 100000
+.equ TIME, 10000
+.equ RED_LEDS, 0xFF200002
 
 .global _start
 _start:
@@ -18,6 +19,9 @@ _start:
     movui r2, 5
     stwio r2, 4(r7)             # Start the timer without continuing with interrupt enabled
 
+LOOP:
+	br LOOP
+
 .section .exceptions, "ax"
 
 IHANDLER:
@@ -26,7 +30,13 @@ IHANDLER:
     beq et, r0, EXIT_IHANDLER   # if not, exit handler
 
     # code to handle interrupt from IRQ0
+    movi r9, 0xFFFFFFFF
+    movia r10, RED_LEDS
+    stwio r9, 0(r10)
+    stwio r0, 0(r10)
+
     # code to acknowledge interrupt from IRQ0
+    stwio r0, 0(r7)
 
 EXIT_IHANDLER:
     subi ea, ea, 4
