@@ -14,7 +14,7 @@ play_audio:
     movia r16, 1000000 # length counter TODO: read actual value
 
 waitforspace:
-    ldwio r10, (r8)
+    ldwio r10, 4(r8)
     andhi r11, r10, 0xFF00 # check for if there is space in FIFO queue
     beq r11, r0, waitforspace
     andhi r11, r10, 0xFF # another channel?
@@ -28,3 +28,8 @@ writesamples:
     addi r4, r4, 4
     ldw r9, 0(r4) # move up the pointer
     br waitforspace
+
+end:
+    ldw r16, 0(sp)
+    addi sp, sp, 16
+    
