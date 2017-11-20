@@ -43,6 +43,47 @@ start_recording:
 
     ret
 
+# subroutine that reads one sample and stores it at the address given as parameter
+record:
+    # save registers used on stack
+    addi sp, sp, -16
+    stw r16, 0(sp)
+    stw r17, 4(sp)
+    stw r18, 8(sp)
+    stw r19, 12(sp)
+
+    # initialize left and right input samples to 0
+    mov r18, r0
+    mov r19, r0
+
+    # read fifo space register
+    movia r16, ADDR_AUDIODACFIFO
+    ldwio r17, 4(r16)
+
+    # extract # of samples in Input Right Channel FIFO
+    andi  r17, r17, 0xff
+    
+    # in case number of samples is 0, store 0 (as initialized)
+    beq r17, r0, store_sample
+
+    # number of samples not 0, so store load the samples to store
+    ldw r18, 8(r16)
+    ldw r19, 12(r16)
+
+store_sample:
+    # store the sample sound to given pointer in memory
+    stwio r18, 0(r3)
+    stwio r19, 4(r3)
+
+    # restore registers used from the stack
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    ldw r18, 8(sp)
+    ldw r19, 12(sp)
+    addi sp, sp, 16
+    
+    ret
+
 # subroutine to stop recording, uses callee saved registers
 stop_recording:
     # TODO
