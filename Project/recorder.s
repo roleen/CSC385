@@ -47,6 +47,7 @@ start_recording:
     ret
 
 # subroutine that reads one sample and stores it at the address given as parameter
+# argument is a pointer stored at r4
 record:
     # save registers used on stack
     addi sp, sp, -16
@@ -54,35 +55,49 @@ record:
     stw r17, 4(sp)
     stw r18, 8(sp)
     stw r19, 12(sp)
+	stw r20, 16(sp)
+    stw r21, 20(sp)
 
     # initialize left and right input samples to 0
     mov r18, r0
     mov r19, r0
-
-    # read fifo space register
-    movia r16, ADDR_AUDIODACFIFO
+	
+	movia r16, ADDR_AUDIODACFIFO
+	movia r19, 0x10000
+	movia r20, ADDR_RED_LEDS
+	
+record_loop:
+	beq r19, r0, 1
+	movia r21, 0
+	stwio r21, 0(r20)
+    # read fifo space register    
     ldwio r17, 4(r16)
 
     # extract # of samples in Input Right Channel FIFO
-    andi  r17, r17, 0xff
-    
-    # in case number of samples is 0, store 0 (as initialized)
-    beq r17, r0, store_sample
+    andi r17, r17, 0xff
+	beq r17, r0, record_loop
+	
+	
+	movia r21, 0b100
+	stwio r21, 0(r20)
+	
+	
+	ldwio r18, 8(r16)
+	stw r18, 0(r4)
+	
+	ldwio r18, 12(r16)	
+	stw r18, 4(r4)
+	
+	subi r19, r19, 1
 
-    # number of samples not 0, so store load the samples to store
-    ldw r18, 8(r16)
-    ldw r19, 12(r16)
-
-store_sample:
-    # store the sample sound to given pointer in memory
-    stwio r18, 0(r3)
-    stwio r19, 4(r3)
-
+record_end:
     # restore registers used from the stack
     ldw r16, 0(sp)
     ldw r17, 4(sp)
     ldw r18, 8(sp)
     ldw r19, 12(sp)
+	ldw r20, 16(sp)
+    ldw r21, 20(sp)
     addi sp, sp, 16
     
     ret

@@ -11,7 +11,7 @@ play_audio:
     
     movia r8, ADDR_AUDIODACFIFO
     ldw r9, 0(r4) # load the first sample
-    movia r16, 1000000 # length counter TODO: read actual value
+    movia r16, 0x10000 # length counter TODO: read actual value
 
 waitforspace:
     ldwio r10, 4(r8)
@@ -22,10 +22,11 @@ waitforspace:
 
 writesamples:
     beq r16, r0, end
-    stwio r9, 8(r8) # write to FIFO
-    stwio r9, 12(r8)
+    stwio r9, 8(r8) # write to left FIFO
+	addi r9, r9, 4
+    stwio r9, 12(r8) # write to right FIFO
     subi r16, r16, 1 # decrement length counter
-    addi r4, r4, 4
+    addi r4, r4, 8
     ldw r9, 0(r4) # move up the pointer
     br waitforspace
 
