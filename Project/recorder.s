@@ -5,6 +5,9 @@
 .equ ADDR_RED_LEDS, 0xFF200000
 .equ RECORD_INDICATOR, 0x3E0
 
+.global start_recording
+.global record
+
 # subroutine to start recording, uses callee saved registers
 start_recording:
     # save registers used on the stack

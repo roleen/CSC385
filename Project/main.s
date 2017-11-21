@@ -97,7 +97,7 @@ keypressactions_end:
 recordmode:
     stw r8, 0(sp)
     stw r9, 4(sp)
-    call start_recording
+    call record
     ldw r8, 0(sp)
     ldw r9, 4(sp)
     br keypressactions_end

@@ -32,4 +32,5 @@ writesamples:
 end:
     ldw r16, 0(sp)
     addi sp, sp, 16
+    ret
     
