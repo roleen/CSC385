@@ -23,22 +23,32 @@ loop:
 .section .exceptions, "ax"
 
 interrupthandler:
-    addi sp, sp, -8 # allocate stack space
+    addi sp, sp, -12 # allocate stack space
 
     rdctl et, ctl4
     andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
     beq et, r0, IntrExit # if not, exit
+
+    stw r8, 0(sp)
+	stw r9, 4(sp)
+    stw ra, 8(sp)
+
     call keypresshandler
-    mov r10, r4
+
+    ldw r8, 0(sp)
+	ldw r9, 4(sp)
+    ldw ra, 8(sp)
+
+    mov r10, r2
 
 IntrExit:
-	addi sp, sp, 8 # restore registers
+
+	addi sp, sp, 12 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret 
 
 
 keypresshandler:
-
     movia r8, PS2_CONTROLLER1
 
 waitforvalid:
