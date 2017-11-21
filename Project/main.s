@@ -1,5 +1,12 @@
 .equ PS2_CONTROLLER1, 0xFF200100
 .equ PS2_IRQ7, 0x80
+.equ R_KEY, 0x2D
+.equ V_KEY, 0x2A
+.equ D_KEY, 0x23
+.equ P_KEY, 0x4D
+.equ S_KEY, 0x1B
+
+
 
 .global _start
 
@@ -17,33 +24,37 @@ _start:
 	wrctl ctl0, r8 # enable global interrupts 
 
 loop:
+
+
     br loop
 
 
 .section .exceptions, "ax"
 
 interrupthandler:
-    addi sp, sp, -12 # allocate stack space
+    addi sp, sp, -20 # allocate stack space 
+    stw r2, 0(sp)
+	stw r8, 4(sp)
+    stw r9, 8(sp)
+	stw r10, 12(sp)
+    stw ra, 16(sp)
 
     rdctl et, ctl4
     andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
     beq et, r0, IntrExit # if not, exit
 
-    stw r8, 0(sp)
-	stw r9, 4(sp)
-    stw ra, 8(sp)
-
     call keypresshandler
-
-    ldw r8, 0(sp)
-	ldw r9, 4(sp)
-    ldw ra, 8(sp)
-
-    mov r10, r2
+    mov et, r2
 
 IntrExit:
 
-	addi sp, sp, 12 # restore registers
+    ldw r2, 0(sp)
+	ldw r8, 4(sp)
+    ldw r9, 8(sp)
+	ldw r10, 12(sp)
+    ldw ra, 16(sp)
+
+	addi sp, sp, 20 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret 
 
@@ -63,14 +74,14 @@ waitforvalid:
     
 
 # TODO: define a list of keymappings for 
-# Recording mode
-# Start recording
-# Pause recording
-# Stop recording
-# Playback mode
-# Start playback
-# Pause playback
-# Stop (return to the beginning point) play back
+# Recording mode -- R
+# Start recording -- D 
+# Pause recording -- P
+# Stop recording -- S
+# Playback mode -- V
+# Start playback -- D
+# Pause playback -- P
+# Stop (return to the beginning point) play back -- S
 keypressactions:
     ret 
 
