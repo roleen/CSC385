@@ -5,7 +5,7 @@
 .equ D_KEY, 0x23
 .equ P_KEY, 0x4D
 .equ S_KEY, 0x1B
-
+.equ audio_location, 0x100000 # TODO: temporary location
 
 
 .global _start
@@ -24,8 +24,7 @@ _start:
 	wrctl ctl0, r8 # enable global interrupts 
 
 loop:
-
-
+    call keypressactions
     br loop
 
 
@@ -73,7 +72,7 @@ waitforvalid:
     ret
     
 
-# TODO: define a list of keymappings for 
+# define a list of keymappings for 
 # Recording mode -- R
 # Start recording -- D 
 # Pause recording -- P
@@ -83,6 +82,30 @@ waitforvalid:
 # Pause playback -- P
 # Stop (return to the beginning point) play back -- S
 keypressactions:
+    addi sp, sp, -20 # allocate stack space 
+
+    movia r8, R_KEY
+    movia r9, V_KEY
+    
+    beq r4, r8, recordmode 
+    beq r4, r9, playbackmode
+
+keypressactions_end:
+    addi sp, sp, 20 # allocate stack space 
     ret 
 
+recordmode:
+    stw r8, 0(sp)
+    stw r9, 4(sp)
+    call start_recording
+    ldw r8, 0(sp)
+    ldw r9, 4(sp)
+    br keypressactions_end
 
+playbackmode:
+    stw r8, 0(sp)
+    stw r9, 4(sp)
+    call play_audio
+    ldw r8, 0(sp)
+    ldw r9, 4(sp)
+    br keypressactions_end
