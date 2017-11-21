@@ -62,7 +62,16 @@ waitforvalid:
     ret
     
 
-    
-
+# TODO: define a list of keymappings for 
+# Recording mode
+# Start recording
+# Pause recording
+# Stop recording
+# Playback mode
+# Start playback
+# Pause playback
+# Stop (return to the beginning point) play back
+keypressactions:
+    ret 
 
 
