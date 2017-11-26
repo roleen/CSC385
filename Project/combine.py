@@ -34,9 +34,9 @@ def read_exceptions(contents, label):
     return exceptions
 
 
-output = read_data(main_contents, "main")
-output += read_data(playback_contents, "playback")
+output = read_data(playback_contents, "playback")
 output += read_data(recorder_contents, "recorder")
+output += read_data(main_contents, "main")
 
 output += "\n.global _start\n"
 

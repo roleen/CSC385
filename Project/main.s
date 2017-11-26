@@ -1,12 +1,26 @@
 .equ PS2_CONTROLLER1, 0xFF200100
 .equ PS2_IRQ7, 0x80
-.equ R_KEY, 0x2D
-.equ V_KEY, 0x2A
-.equ D_KEY, 0x23
-.equ P_KEY, 0x4D
-.equ S_KEY, 0x1B
 .equ audio_location, 0x100000 # TODO: temporary location
 .equ LED, 0xFF200000
+
+.data
+ACTIONS_LIST:
+    .word 0x2D # R
+    .word recordmode
+    .word 0x2A # V
+    .word playbackmode
+    .word 0x23 # D
+    .word deletemode
+    .word 0x4D # P
+    .word pausemode
+    .word 0x1B # S
+    .word stopmode
+    .word 0 # End of actions
+
+BRANCH_ADDRESS:
+    .skip 4
+
+.text
 
 .global _start
 
@@ -48,7 +62,7 @@ interrupthandler:
     beq et, r0, IntrExit # if not, exit
 
     call keypresshandler
-    mov r4, r2
+    mov r4, r2 # set key pressed by user as input for keypressactions
 	call keypressactions
 
 IntrExit:
@@ -67,9 +81,9 @@ IntrExit:
 
 	addi sp, sp, 44 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
-	eret 
+	eret
 
-
+# Returns the key pressed by the user
 keypresshandler:
     movia r8, PS2_CONTROLLER1
 
@@ -97,18 +111,26 @@ keypressactions:
     addi sp, sp, -20 # allocate stack space 
 	stw r16, 0(sp)
 	stw r17, 4(sp)
-	stw ra, 8(sp)
+    stw r18, 8(sp)
+	stw ra, 12(sp)
+    movia r16, ACTIONS_LIST
 
-    movia r16, R_KEY
-    movia r17, V_KEY
+findaction:
+    ldw r17, 0(r16) # action key
+    beq r17, r0, keypressactions_end # no valid key press mapping found
+    addi r16, r16, 8
+    bne r17, r4, findaction
     
-    beq r4, r16, recordmode 
-    beq r4, r17, playbackmode
+    # Found valid key press
+    subi r16, r16, 8
+    ldw ra, 4(r16)
+    ret
 
 keypressactions_end:
 	ldw r16, 0(sp)
-	ldw r17, 4(sp)	
-	ldw ra, 8(sp)
+	ldw r17, 4(sp)
+    ldw r18, 8(sp)	
+	ldw ra, 12(sp)
     addi sp, sp, 20 # allocate stack space 
     ret 
 
@@ -134,4 +156,16 @@ playbackmode:
     call play_audio
     ldw r16, 0(sp)
     ldw r17, 4(sp)
+    br keypressactions_end
+
+deletemode:
+    # TODO
+    br keypressactions_end
+
+pausemode:
+    # TODO
+    br keypressactions_end
+
+stopmode:
+    # TODO
     br keypressactions_end
