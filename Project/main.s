@@ -28,11 +28,15 @@ BRANCH_ADDRESS:
 .align 2
 key_pressed: 
     .word 0 # pressed key
-    .word 0 # readed or not
+    .word 0 # read or not
 
 .align 2
 selected:
     .word 0 # seleted recording
+
+.align 2
+recordings: # allocate space for storing recordings
+    .skip 1000000 # 16MB
 
 .text
 
@@ -51,7 +55,7 @@ _start:
 	movi r8, 1
 	wrctl ctl0, r8 # enable global interrupts 
 
-    br stopmode
+    br playbackstopmode
 
 
 .section .exceptions, "ax"
@@ -113,11 +117,11 @@ waitforvalid:
 
 # define a list of keymappings for 
 # Recording mode -- R
-# Start recording -- D 
+# Start/Resume recording -- D 
 # Pause recording -- P
 # Stop recording -- S
 # Playback mode -- V
-# Start playback -- D
+# Start/Resume playback -- D
 # Pause playback -- P
 # Stop (return to the beginning point) play back -- S
 keypressactions:
@@ -158,7 +162,7 @@ recordmode:
     call record
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br stopmode
+    br recordingstopmode
 
 playbackmode:   
 	movia r16, LED
@@ -170,16 +174,37 @@ playbackmode:
     call play_audio
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br stopmode
+    br playbackstopmode
 
 deletemode:
-    # TODO
+    # TODO: We need this mode? or we can just delete stuffs in stop mode
     br keypressactions_end
 
 pausemode:
-    # TODO
-    br keypressactions_end
+    addi sp, sp, -16
+    stw ra, 0(sp)
+    stw r16, 4(sp)
+    stw r17, 8(sp)
+    stw r18, 12(sp)
+    
+    movia r16, key_pressed
+    ldw r17, 0(r16)
+    movia r18, 'D' # if pressed key not resume, then keep pausing
+    bne r17, r18, pausemode
 
-stopmode:
+    movi r17, 1
+    stw r17, 4(r16) # set as read
+    
+    ldw ra, 0(sp)
+    ldw r16, 4(sp)
+    ldw r17, 8(sp)
+    ldw r18, 12(sp)
+    addi sp, sp, 16
+
+
+playbackstopmode:
     # TODO: currently selected 
-    br stopmode
+    br playbackstopmode
+
+recordingstopmode:
+    br recordingstopmode
