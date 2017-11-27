@@ -57,100 +57,7 @@ _start:
 
     br playbackstopmode
 
-
-.section .exceptions, "ax"
-
-interrupthandler:
-    addi sp, sp, -44 # allocate stack space 
-    stw r2, 0(sp)
-	stw r8, 4(sp)
-    stw r9, 8(sp)
-	stw r10, 12(sp)
-	stw r11, 16(sp)
-	stw r12, 20(sp)
-	stw r13, 24(sp)
-	stw r14, 28(sp)
-	stw r15, 32(sp)
-    stw ra, 36(sp)
-	stw r4, 40(sp)
-
-    rdctl et, ctl4
-    andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
-    beq et, r0, IntrExit # if not, exit
-
-    call keypresshandler
-
-IntrExit:
-
-    ldw r2, 0(sp)
-	ldw r8, 4(sp)
-    ldw r9, 8(sp)
-	ldw r10, 12(sp)
-	ldw r11, 16(sp)
-	ldw r12, 20(sp)
-	ldw r13, 24(sp)
-	ldw r14, 28(sp)
-	ldw r15, 32(sp)
-    ldw ra, 36(sp)
-	ldw r4, 40(sp)
-
-	addi sp, sp, 44 # restore registers
-	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
-	eret
-
-# save the last key press in memory location FLAG
-keypresshandler:
-    movia r8, PS2_CONTROLLER1
-
-waitforvalid:
-    ldwio r9, 0(r8) # read input data (also ack interrupt autmatically)
-
-    movia r10, 0x8000
-    add r9, r9, r10 # check if valid
-    beq r9, r0, waitforvalid # if not, loop
-
-    andi r4, r9, 0xFF
-    call keypressactions
-
-    ret
-    
-
-# define a list of keymappings for 
-# Recording mode -- R
-# Start/Resume recording -- D 
-# Pause recording -- P
-# Stop recording -- S
-# Playback mode -- V
-# Start/Resume playback -- D
-# Pause playback -- P
-# Stop (return to the beginning point) play back -- S
-keypressactions:
-    addi sp, sp, -20 # allocate stack space 
-	stw r16, 0(sp)
-	stw r17, 4(sp)
-    stw r18, 8(sp)
-	stw ra, 12(sp)
-    movia r16, ACTIONS_LIST
-
-findaction:
-    ldw r17, 0(r16) # action key
-    beq r17, r0, keypressactions_end # no valid key press mapping found
-    
-    addi r16, r16, 8
-    bne r17, r4, findaction
-    ldw r17, 4(r16) # get the key
-    
-    movia r18, key_pressed
-    stw r17, 0(r18) # save the key into key_pressed
-    stw r0, 4(r18) # set read to 0
-
-keypressactions_end:
-	ldw r16, 0(sp)
-	ldw r17, 4(sp)
-    ldw r18, 8(sp)	
-	ldw ra, 12(sp)
-    addi sp, sp, 20 # allocate stack space 
-    ret 
+# ############recoder states below
 
 recordmode:
 	movia r16, LED
@@ -208,3 +115,104 @@ playbackstopmode:
 
 recordingstopmode:
     br recordingstopmode
+
+
+# ######Memory Management Below
+
+
+
+# ######Interrupt Handler and Helper Functions Below
+
+# save the last key press in memory location FLAG
+keypresshandler:
+    movia r8, PS2_CONTROLLER1
+
+waitforvalid:
+    ldwio r9, 0(r8) # read input data (also ack interrupt autmatically)
+
+    movia r10, 0x8000
+    add r9, r9, r10 # check if valid
+    beq r9, r0, waitforvalid # if not, loop
+
+    andi r4, r9, 0xFF
+    call keypressactions
+
+    ret
+    
+# define a list of keymappings for 
+# Recording mode -- R
+# Start/Resume recording -- D 
+# Pause recording -- P
+# Stop recording -- S
+# Playback mode -- V
+# Start/Resume playback -- D
+# Pause playback -- P
+# Stop (return to the beginning point) play back -- S
+keypressactions:
+    addi sp, sp, -20 # allocate stack space 
+	stw r16, 0(sp)
+	stw r17, 4(sp)
+    stw r18, 8(sp)
+	stw ra, 12(sp)
+    movia r16, ACTIONS_LIST
+
+findaction:
+    ldw r17, 0(r16) # action key
+    beq r17, r0, keypressactions_end # no valid key press mapping found
+    
+    addi r16, r16, 8
+    bne r17, r4, findaction
+    ldw r17, 4(r16) # get the key
+    
+    movia r18, key_pressed
+    stw r17, 0(r18) # save the key into key_pressed
+    stw r0, 4(r18) # set read to 0
+
+keypressactions_end:
+	ldw r16, 0(sp)
+	ldw r17, 4(sp)
+    ldw r18, 8(sp)	
+	ldw ra, 12(sp)
+    addi sp, sp, 20 # allocate stack space 
+    ret 
+
+.section .exceptions, "ax"
+
+interrupthandler:
+    addi sp, sp, -44 # allocate stack space 
+    stw r2, 0(sp)
+	stw r8, 4(sp)
+    stw r9, 8(sp)
+	stw r10, 12(sp)
+	stw r11, 16(sp)
+	stw r12, 20(sp)
+	stw r13, 24(sp)
+	stw r14, 28(sp)
+	stw r15, 32(sp)
+    stw ra, 36(sp)
+	stw r4, 40(sp)
+
+    rdctl et, ctl4
+    andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
+    beq et, r0, IntrExit # if not, exit
+
+    call keypresshandler
+
+IntrExit:
+
+    ldw r2, 0(sp)
+	ldw r8, 4(sp)
+    ldw r9, 8(sp)
+	ldw r10, 12(sp)
+	ldw r11, 16(sp)
+	ldw r12, 20(sp)
+	ldw r13, 24(sp)
+	ldw r14, 28(sp)
+	ldw r15, 32(sp)
+    ldw ra, 36(sp)
+	ldw r4, 40(sp)
+
+	addi sp, sp, 44 # restore registers
+	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
+	eret
+
