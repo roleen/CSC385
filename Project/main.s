@@ -87,12 +87,11 @@ deletemode:
     # TODO: We need this mode? or we can just delete stuffs in stop mode
     br keypressactions_end
 
-pausemode:
-    addi sp, sp, -16
-    stw ra, 0(sp)
-    stw r16, 4(sp)
-    stw r17, 8(sp)
-    stw r18, 12(sp)
+pausemode: # it's actually a function
+    addi sp, sp, -12
+    stw r16, 0(sp)
+    stw r17, 4(sp)
+    stw r18, 8(sp)
     
     movia r16, key_pressed
     ldw r17, 0(r16)
@@ -102,11 +101,11 @@ pausemode:
     movi r17, 1
     stw r17, 4(r16) # set as read
     
-    ldw ra, 0(sp)
-    ldw r16, 4(sp)
-    ldw r17, 8(sp)
-    ldw r18, 12(sp)
-    addi sp, sp, 16
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    ldw r18, 8(sp)
+    addi sp, sp, 12
+    ret
 
 
 playbackstopmode:
@@ -119,12 +118,19 @@ recordingstopmode:
 
 # ######Memory Management Below
 
+# input a pointer, and return the pointer after the header
+createhdear:
+    addi sp, sp, 8
+
 
 
 # ######Interrupt Handler and Helper Functions Below
 
 # save the last key press in memory location FLAG
 keypresshandler:
+    addi sp, sp, -4
+    stw ra, 0(sp)
+
     movia r8, PS2_CONTROLLER1
 
 waitforvalid:
@@ -137,6 +143,8 @@ waitforvalid:
     andi r4, r9, 0xFF
     call keypressactions
 
+    ldw ra, 0(sp)
+    addi sp, sp, 4
     ret
     
 # define a list of keymappings for 
@@ -149,11 +157,10 @@ waitforvalid:
 # Pause playback -- P
 # Stop (return to the beginning point) play back -- S
 keypressactions:
-    addi sp, sp, -20 # allocate stack space 
+    addi sp, sp, -12 # allocate stack space 
 	stw r16, 0(sp)
 	stw r17, 4(sp)
     stw r18, 8(sp)
-	stw ra, 12(sp)
     movia r16, ACTIONS_LIST
 
 findaction:
@@ -172,8 +179,7 @@ keypressactions_end:
 	ldw r16, 0(sp)
 	ldw r17, 4(sp)
     ldw r18, 8(sp)	
-	ldw ra, 12(sp)
-    addi sp, sp, 20 # allocate stack space 
+    addi sp, sp, 12 # allocate stack space 
     ret 
 
 .section .exceptions, "ax"
