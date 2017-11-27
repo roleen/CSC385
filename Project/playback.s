@@ -1,37 +1,54 @@
-
-# void play_audio(char *audio_ptr);
-
-
 .equ ADDR_AUDIODACFIFO, 0xFF203040
 
 .global play_audio
+
+# subroutine that reads the samples at the pointer in the store location,
+# writes the samples to the left and right output FIFO of the audio codec
+# and returns the pointer to the next sample (0 if at the end of recording).
+# arguments:
+#   r4: pointer to store location
+#   r5: pointer to header
+# return:
+#   r2: pointer to the next sample
 play_audio:
+    # save registers used on the stack
     addi sp, sp, -16
     stw r16, 0(sp)
-    
-    movia r8, ADDR_AUDIODACFIFO
-    ldw r9, 0(r4) # load the first sample
-    movia r16, 0x10000 # length counter TODO: read actual value
+    stw r17, 4(sp)
+    stw r18, 8(sp)
+
+    movia r16, ADDR_AUDIODACFIFO
 
 waitforspace:
-    ldwio r10, 4(r8)
-    andhi r11, r10, 0xFF00 # check for if there is space in FIFO queue
-    beq r11, r0, waitforspace
-    andhi r11, r10, 0xFF # another channel?
-    beq r11, r0, waitforspace
+    ldwio r18, 4(r16)
+    andhi r17, r18, 0xFF00 # check for if there is space in FIFO queue
+    beq r17, r0, waitforspace
+    andhi r17, r18, 0xFF # another channel?
+    beq r17, r0, waitforspace
 
-writesamples:
-    beq r16, r0, end
-    stwio r9, 8(r8) # write to left FIFO
-	addi r9, r9, 4
-    stwio r9, 12(r8) # write to right FIFO
-    subi r16, r16, 1 # decrement length counter
-    addi r4, r4, 8
-    ldw r9, 0(r4) # move up the pointer
-    br waitforspace
-
-end:
-    ldw r16, 0(sp)
-    addi sp, sp, 16
-    ret
+    # write the sample to the left and right output FIFOs
+    ldw r17, 0(r4)
+    stwio r17, 8(r16)
+	addi r17, r17, 4
+    stwio r17, 12(r16)
     
+    # get the next sample's potential pointer
+    addi r2, r4, 8
+    
+    # get the address of the end of this recording using header's length
+    addi r17, r5, 16
+    ldw r18, 4(r5)
+    add r17, r17, r18
+
+    # set next pointer to 0 if potential next pointer goes beyond this recording
+    ble r2, r17, restore_registers
+    mov r2, r0
+
+restore_registers:
+    # restore registers used from the stack
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    ldw r18, 8(sp)
+    addi sp, sp, 16
+
+    ret

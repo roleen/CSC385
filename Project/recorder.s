@@ -1,34 +1,12 @@
-.equ ADDR_AUDIODACFIFO, 0xFF203040\
-.equ ADDR_RED_LEDS, 0xFF200000
-.equ RECORD_INDICATOR, 0x3E0
+.equ ADDR_AUDIODACFIFO, 0xFF203040
 
-.global start_recording
 .global record
-.global stop_recording
 
-# subroutine to start recording, uses callee saved registers
-start_recording:
-    # save registers used on the stack
-    addi sp, sp, -8
-    stw r16, 0(sp)
-    stw r17, 4(sp)
-
-    # turn on left half of red LEDs indicating recording
-    movia r16, ADDR_RED_LEDS
-    movia r17, RECORD_INDICATOR
-    stwio r17, 0(r16)
-
-    # restore registers used from the stack
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    addi sp, sp, 8
-
-    ret
-
-# subroutine that reads one sample and stores it at the address given as parameter
+# subroutine that reads one sample and stores it at the address given 
+# store location and increments the length in the header accordingly
 # arguments:
-# r4: pointer to store location
-# r5: pointer to header
+#   r4: pointer to store location
+#   r5: pointer to header
 record:
     # save registers used on the stack
     addi sp, sp, -8
@@ -57,22 +35,3 @@ record:
     addi sp, sp, 8
 
     ret
-
-# subroutine to stop recording, uses callee saved registers
-stop_recording:
-    # save registers used on the stack
-    addi sp, sp, -8
-    stw r16, 0(sp)
-    stw r17, 4(sp)
-
-    # turn off left half of red LEDs indicating recording
-    movia r16, ADDR_RED_LEDS
-    stwio r0, 0(r16)
-
-    # restore registers used from the stack
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    addi sp, sp, 8
-
-    ret
-    
