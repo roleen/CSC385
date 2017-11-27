@@ -124,6 +124,8 @@ playback_mode:
 	movia r4, selected
     
 playback_loop:    
+    beq r4, r0, playback_stop_mode
+
     call play_audio
 
     mov r4, r2 # move up the pointer using return value from play_audio
