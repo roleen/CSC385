@@ -126,6 +126,7 @@ createhdear:
     addi r4, 4 
     stw r0, 0(r4) # void *next = NULL;
     mov r2, r4 # rest to store audios
+    ret 
 
 # ######Interrupt Handler and Helper Functions Below
 
