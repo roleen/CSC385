@@ -89,6 +89,9 @@ playback_stop_mode:
     stw r9, 0(r8) # set cur_state to playbackstop
     
     movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
+    
     ldw r10, 0(r8)
     
     movi r9, 'D'
@@ -96,6 +99,8 @@ playback_stop_mode:
 
     movi r9, 'R'
     beq r10, r9, recording_stop_mode
+
+    # TODO: record selection
 
     br playback_stop_mode
 
@@ -123,10 +128,6 @@ playback_mode:
     ldw r16, 0(sp)
     ldw r17, 4(sp)
     br playback_stop_mode
-
-deletemode:
-    # TODO: We need this mode? or we can just delete stuffs in stop mode
-    br keypressactions_end
 
 pause_mode: # it's actually a function
     addi sp, sp, -12
