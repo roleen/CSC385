@@ -4,6 +4,15 @@
 .equ LED, 0xFF200000
 
 .data
+# define a list of keymappings for 
+# Recording mode -- R
+# Start/Resume recording -- D 
+# Pause recording -- P
+# Stop recording -- S
+# Playback mode -- V
+# Start/Resume playback -- D
+# Pause playback -- P
+# Stop (return to the beginning point) play back -- S
 ACTIONS_LIST:
     .word 0x2D # R
     .word 'R'
@@ -64,22 +73,34 @@ _start:
 	movi r8, 1
 	wrctl ctl0, r8 # enable global interrupts 
 
-    br playbackstopmode
+    br playback_stop_mode
 
 # ############recoder states below
 # Each state will be a loop, doing recording or waiting using the loop
 # also polling the key_pressed to see if state need transistion
+# stop/recording/playback modes are code snipets, 
+# pause is a fucntion becasue it needs to return to the previous states
+#
+#
 
-playbackstopmode:
-
-
+playback_stop_mode:
+    movia r8, cur_state
+    movi r9, 4
+    stw r9, 0(r8) # set cur_state to playbackstop
+    
     movia r8, key_pressed
-    movia r9, 'D'
+    ldw r10, 0(r8)
+    
+    movi r9, 'D'
+    beq r10, r9, playback_mode
 
-    br playbackstopmode
+    movi r9, 'R'
+    beq r10, r9, recording_stop_mode
+
+    br playback_stop_mode
 
 
-recordmode:
+record_mode:
 	movia r16, LED
 	movia r17, 0b1
 	stwio r0, 0(r16)
@@ -89,9 +110,9 @@ recordmode:
     call record
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br recordingstopmode
+    br recording_stop_mode
 
-playbackmode:   
+playback_mode:   
 	movia r16, LED
 	movia r17, 0b10
 	stwio r0, 0(r16)
@@ -101,13 +122,13 @@ playbackmode:
     call play_audio
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br playbackstopmode
+    br playback_stop_mode
 
 deletemode:
     # TODO: We need this mode? or we can just delete stuffs in stop mode
     br keypressactions_end
 
-pausemode: # it's actually a function
+pause_mode: # it's actually a function
     addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
@@ -120,7 +141,7 @@ pausemode: # it's actually a function
     movia r16, key_pressed
     ldw r17, 0(r16)
     movia r18, 'D' # if pressed key not resume, then keep pausing
-    bne r17, r18, pausemode
+    bne r17, r18, pause_mode
 
     movi r17, 1
     stw r17, 4(r16) # set as read
@@ -132,14 +153,14 @@ pausemode: # it's actually a function
     ret
 
 
-recordingstopmode:
-    br recordingstopmode
+recording_stop_mode:
+    br recording_stop_mode
 
 
 # ######Memory Management Below
 
 # input a pointer, and return the pointer after the header
-createhdear:
+create_hdear:
     stw r0, 0(r4) # id
     addi r4, 4 
     stw r0, 0(r4) # length
@@ -148,10 +169,17 @@ createhdear:
     mov r2, r4 # rest to store audios
     ret 
 
+
+# ######Additional Helper functions
+
+delete_current_selection:
+    ret
+
+
 # ######Interrupt Handler and Helper Functions Below
 
 # save the last key press in memory location FLAG
-keypresshandler:
+keypress_handler:
     addi sp, sp, -4
     stw ra, 0(sp)
 
@@ -165,22 +193,13 @@ waitforvalid:
     beq r9, r0, waitforvalid # if not, loop
 
     andi r4, r9, 0xFF
-    call keypressactions
+    call keypress_actions
 
     ldw ra, 0(sp)
     addi sp, sp, 4
     ret
     
-# define a list of keymappings for 
-# Recording mode -- R
-# Start/Resume recording -- D 
-# Pause recording -- P
-# Stop recording -- S
-# Playback mode -- V
-# Start/Resume playback -- D
-# Pause playback -- P
-# Stop (return to the beginning point) play back -- S
-keypressactions:
+keypress_actions:
     addi sp, sp, -12 # allocate stack space 
 	stw r16, 0(sp)
 	stw r17, 4(sp)
@@ -226,7 +245,7 @@ interrupthandler:
     andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
     beq et, r0, IntrExit # if not, exit
 
-    call keypresshandler
+    call keypress_handler
 
 IntrExit:
 
