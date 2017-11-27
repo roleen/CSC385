@@ -56,6 +56,14 @@ selected:
 recordings: # allocate space for storing recordings
     .skip 1000000 # 16MB
 
+.align 2
+free_ptr: # pointer to the free space
+    .word recordings
+
+.align 2
+id: # id of a recording, keep incrementing
+    .word 0    
+
 .text
 
 .global _start
@@ -122,30 +130,53 @@ playback_loop:
 
     ldw r17, 0(r16)
     movia r18, 'P' # if pressed key not resume, then keep pausing
-    beq r17, r18, call_pause
+    beq r17, r18, playback_call_pasue
     
     ldw r17, 0(r16)
     movia r18, 'S' # if pressed key not resume, then keep pausing
-    beq r17, r18, playback_mode
+    beq r17, r18, playback_stop_mode 
 
     br playback_loop
 
-call_pasue:
+playback_call_pasue:
     call pause_mode
     br playback_loop
 
+record_mode:   
+    movia r8, cur_state
+    movi r9, 1
+    stw r9, 0(r8) # set cur_state to playback_mode
 
-record_mode:
-	movia r16, LED
-	movia r17, 0b1
-	stwio r0, 0(r16)
-	stwio r17, 0(r16)
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
 
-	movia r4, audio_location
+	movia r4, free_ptr
+    call create_hdear
+    mov r4, r2
+record_loop:    
     call record
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
+
+    mov r4, r2 # move up the pointer using return value from play_audio
+
+    ldw r17, 0(r16)
+    movia r18, 'P' # if pressed key not resume, then keep pausing
+    beq r17, r18, record_call_pasue
+    
+    ldw r17, 0(r16)
+    movia r18, 'S' # if pressed key not resume, then keep pausing
+    beq r17, r18, record_stopping # TODO: update header and free space
+
+    br playback_loop
+
+record_call_pasue:
+    call pause_mode
+    br record_loop
+
+record_stopping:
+    # TODO: update header
     br recording_stop_mode
+
 
 pause_mode: # it's actually a function
     addi sp, sp, -12
@@ -181,12 +212,19 @@ recording_stop_mode:
 
 # input a pointer, and return the pointer after the header
 create_hdear:
-    stw r0, 0(r4) # id
+    movia r8, id
+    ldw r9, 0(r8)
+
+    stw r9, 0(r4) # id
     addi r4, 4 
     stw r0, 0(r4) # length
     addi r4, 4 
     stw r0, 0(r4) # next pointer
     mov r2, r4 # rest to store audios
+    
+    addi r9, r9, 1 # increment id by 1 for next use
+    stw r9, 0(r8)
+    
     ret 
 
 
