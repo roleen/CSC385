@@ -26,6 +26,15 @@ BRANCH_ADDRESS:
     .skip 4
 
 .align 2
+cur_state:
+    .word 0 # states:
+            # 0 = playbackstop
+            # 1 = playback playing
+            # 2 = recordstop
+            # 3 = recording
+            # 4 = pause
+
+.align 2
 key_pressed: 
     .word 0 # pressed key
     .word 0 # read or not
@@ -58,6 +67,17 @@ _start:
     br playbackstopmode
 
 # ############recoder states below
+# Each state will be a loop, doing recording or waiting using the loop
+# also polling the key_pressed to see if state need transistion
+
+playbackstopmode:
+
+
+    movia r8, key_pressed
+    movia r9, 'D'
+
+    br playbackstopmode
+
 
 recordmode:
 	movia r16, LED
@@ -92,6 +112,10 @@ pausemode: # it's actually a function
     stw r16, 0(sp)
     stw r17, 4(sp)
     stw r18, 8(sp)
+
+    movia r16, cur_state
+    movi r17, 4
+    stw r17, 0(r16) # set cur_state to pasue
     
     movia r16, key_pressed
     ldw r17, 0(r16)
@@ -108,10 +132,6 @@ pausemode: # it's actually a function
     ret
 
 
-playbackstopmode:
-    # TODO: currently selected 
-    br playbackstopmode
-
 recordingstopmode:
     br recordingstopmode
 
@@ -120,11 +140,11 @@ recordingstopmode:
 
 # input a pointer, and return the pointer after the header
 createhdear:
-    stw r0, 0(r4) # unsigned int id = 0;
+    stw r0, 0(r4) # id
     addi r4, 4 
-    stw r0, 0(r4) # unsigned int length = 0;
+    stw r0, 0(r4) # length
     addi r4, 4 
-    stw r0, 0(r4) # void *next = NULL;
+    stw r0, 0(r4) # next pointer
     mov r2, r4 # rest to store audios
     ret 
 
