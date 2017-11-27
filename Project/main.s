@@ -146,7 +146,7 @@ record_mode:
     addi sp, sp, -4
 
     movia r8, cur_state
-    movi r9, 1
+    movi r9, 3
     stw r9, 0(r8) # set cur_state to playback_mode
 
     movia r8, key_pressed
@@ -178,7 +178,6 @@ record_call_pasue:
     br record_loop
 
 record_stopping:
-    # TODO: update header
     movia r8, free_ptr
     stw r2, 0(r8) # update free pointer
     ldw r10, 0(sp) # get header pointer from stack
@@ -215,8 +214,24 @@ pause_mode_loop:
 
 
 recording_stop_mode:
-    br recording_stop_mode
+    movia r8, cur_state
+    movi r9, 2
+    stw r9, 0(r8) # set cur_state to 2
+    
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
 
+recording_stop_mode_loop:
+    ldw r10, 0(r8)
+    
+    movi r9, 'D'
+    beq r10, r9, record_mode
+
+    movi r9, 'R'
+    beq r10, r9, playback_stop_mode
+
+    br playback_stop_mode_loop
 
 # ######Memory Management Below
 
