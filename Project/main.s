@@ -50,7 +50,7 @@ key_pressed:
 
 .align 2
 selected:
-    .word 0 # seleted recording
+    .word 0 # seleted recording, store pointer to it
 
 .align 2
 recordings: # allocate space for storing recordings
@@ -85,13 +85,13 @@ _start:
 
 playback_stop_mode:
     movia r8, cur_state
-    movi r9, 4
-    stw r9, 0(r8) # set cur_state to playbackstop
+    stw r0, 0(r8) # set cur_state to playbackstop
     
     movia r8, key_pressed
     movi r9, 1
     stw r9, 4(r8) # set key_pressed as read
-    
+
+playback_stop_mode_loop:
     ldw r10, 0(r8)
     
     movi r9, 'D'
@@ -102,7 +102,37 @@ playback_stop_mode:
 
     # TODO: record selection
 
-    br playback_stop_mode
+    br playback_stop_mode_loop
+
+playback_mode:   
+    movia r8, cur_state
+    movi r9, 1
+    stw r9, 0(r8) # set cur_state to playback_mode
+
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
+
+	movia r4, selected
+    
+playback_loop:    
+    call play_audio
+
+    mov r4, r2 # move up the pointer using return value from play_audio
+
+    ldw r17, 0(r16)
+    movia r18, 'P' # if pressed key not resume, then keep pausing
+    beq r17, r18, call_pause
+    
+    ldw r17, 0(r16)
+    movia r18, 'S' # if pressed key not resume, then keep pausing
+    beq r17, r18, playback_mode
+
+    br playback_loop
+
+call_pasue:
+    call pause_mode
+    br playback_loop
 
 
 record_mode:
@@ -117,18 +147,6 @@ record_mode:
     ldw r17, 4(sp)
     br recording_stop_mode
 
-playback_mode:   
-	movia r16, LED
-	movia r17, 0b10
-	stwio r0, 0(r16)
-	stwio r17, 0(r16)
-
-	movia r4, audio_location
-    call play_audio
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    br playback_stop_mode
-
 pause_mode: # it's actually a function
     addi sp, sp, -12
     stw r16, 0(sp)
@@ -140,9 +158,10 @@ pause_mode: # it's actually a function
     stw r17, 0(r16) # set cur_state to pasue
     
     movia r16, key_pressed
+pause_mode_loop:
     ldw r17, 0(r16)
     movia r18, 'D' # if pressed key not resume, then keep pausing
-    bne r17, r18, pause_mode
+    bne r17, r18, pause_mode_loop
 
     movi r17, 1
     stw r17, 4(r16) # set as read
