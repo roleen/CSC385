@@ -120,9 +120,12 @@ recordingstopmode:
 
 # input a pointer, and return the pointer after the header
 createhdear:
-    addi sp, sp, 8
-
-
+    stw r0, 0(r4) # unsigned int id = 0;
+    addi r4, 4 
+    stw r0, 0(r4) # unsigned int length = 0;
+    addi r4, 4 
+    stw r0, 0(r4) # void *next = NULL;
+    mov r2, r4 # rest to store audios
 
 # ######Interrupt Handler and Helper Functions Below
 
