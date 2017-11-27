@@ -50,11 +50,19 @@ key_pressed:
 
 .align 2
 selected:
-    .word 0 # seleted recording
+    .word 0 # seleted recording, store pointer to it
 
 .align 2
 recordings: # allocate space for storing recordings
     .skip 1000000 # 16MB
+
+.align 2
+free_ptr: # pointer to the free space
+    .word recordings
+
+.align 2
+id: # id of a recording, keep incrementing
+    .word 0    
 
 .text
 
@@ -85,10 +93,13 @@ _start:
 
 playback_stop_mode:
     movia r8, cur_state
-    movi r9, 4
-    stw r9, 0(r8) # set cur_state to playbackstop
+    stw r0, 0(r8) # set cur_state to playbackstop
     
     movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
+
+playback_stop_mode_loop:
     ldw r10, 0(r8)
     
     movi r9, 'D'
@@ -97,36 +108,86 @@ playback_stop_mode:
     movi r9, 'R'
     beq r10, r9, recording_stop_mode
 
-    br playback_stop_mode
+    # TODO: record selection
 
-
-record_mode:
-	movia r16, LED
-	movia r17, 0b1
-	stwio r0, 0(r16)
-	stwio r17, 0(r16)
-
-	movia r4, audio_location
-    call record
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    br recording_stop_mode
+    br playback_stop_mode_loop
 
 playback_mode:   
-	movia r16, LED
-	movia r17, 0b10
-	stwio r0, 0(r16)
-	stwio r17, 0(r16)
+    movia r8, cur_state
+    movi r9, 1
+    stw r9, 0(r8) # set cur_state to playback_mode
 
-	movia r4, audio_location
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
+
+	movia r4, selected
+    
+playback_loop:    
+    beq r4, r0, playback_stop_mode
+
     call play_audio
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    br playback_stop_mode
 
-deletemode:
-    # TODO: We need this mode? or we can just delete stuffs in stop mode
-    br keypressactions_end
+    mov r4, r2 # move up the pointer using return value from play_audio
+
+    ldw r17, 0(r8)
+    movia r18, 'P' # if pressed key not resume, then keep pausing
+    beq r17, r18, playback_call_pasue
+    
+    ldw r17, 0(r8)
+    movia r18, 'S' # if pressed key not resume, then keep pausing
+    beq r17, r18, playback_stop_mode 
+
+    br playback_loop
+
+playback_call_pasue:
+    call pause_mode
+    br playback_loop
+
+record_mode:   
+    addi sp, sp, -4
+
+    movia r8, cur_state
+    movi r9, 3
+    stw r9, 0(r8) # set cur_state to playback_mode
+
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
+
+	movia r4, free_ptr
+    mov r10, r4
+    stw r10, 0(sp) # store header pointer in stack
+    call create_hdear
+    mov r4, r2
+record_loop:    
+    call record
+
+    mov r4, r2 # move up the pointer using return value from play_audio
+
+    ldw r17, 0(r8)
+    movia r18, 'P' # if pressed key not resume, then keep pausing
+    beq r17, r18, record_call_pasue
+    
+    ldw r17, 0(r8)
+    movia r18, 'S' # if pressed key not resume, then keep pausing
+    beq r17, r18, record_stopping # TODO: update header and free space
+
+    br playback_loop
+
+record_call_pasue:
+    call pause_mode
+    br record_loop
+
+record_stopping:
+    movia r8, free_ptr
+    stw r2, 0(r8) # update free pointer
+    ldw r10, 0(sp) # get header pointer from stack
+    stw r2, 4(r10) # update header next
+
+    addi sp, sp, 4
+    br recording_stop_mode
+
 
 pause_mode: # it's actually a function
     addi sp, sp, -12
@@ -139,9 +200,10 @@ pause_mode: # it's actually a function
     stw r17, 0(r16) # set cur_state to pasue
     
     movia r16, key_pressed
+pause_mode_loop:
     ldw r17, 0(r16)
     movia r18, 'D' # if pressed key not resume, then keep pausing
-    bne r17, r18, pause_mode
+    bne r17, r18, pause_mode_loop
 
     movi r17, 1
     stw r17, 4(r16) # set as read
@@ -154,19 +216,42 @@ pause_mode: # it's actually a function
 
 
 recording_stop_mode:
-    br recording_stop_mode
+    movia r8, cur_state
+    movi r9, 2
+    stw r9, 0(r8) # set cur_state to 2
+    
+    movia r8, key_pressed
+    movi r9, 1
+    stw r9, 4(r8) # set key_pressed as read
 
+recording_stop_mode_loop:
+    ldw r10, 0(r8)
+    
+    movi r9, 'D'
+    beq r10, r9, record_mode
+
+    movi r9, 'R'
+    beq r10, r9, playback_stop_mode
+
+    br playback_stop_mode_loop
 
 # ######Memory Management Below
 
 # input a pointer, and return the pointer after the header
 create_hdear:
-    stw r0, 0(r4) # id
+    movia r8, id
+    ldw r9, 0(r8)
+
+    stw r9, 0(r4) # id
     addi r4, 4 
     stw r0, 0(r4) # length
     addi r4, 4 
     stw r0, 0(r4) # next pointer
     mov r2, r4 # rest to store audios
+    
+    addi r9, r9, 1 # increment id by 1 for next use
+    stw r9, 0(r8)
+    
     ret 
 
 
