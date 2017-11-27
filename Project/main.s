@@ -6,19 +6,33 @@
 .data
 ACTIONS_LIST:
     .word 0x2D # R
-    .word recordmode
+    .word 'R'
     .word 0x2A # V
-    .word playbackmode
+    .word 'V'
     .word 0x23 # D
-    .word deletemode
+    .word 'D'
     .word 0x4D # P
-    .word pausemode
+    .word 'P'
     .word 0x1B # S
-    .word stopmode
+    .word 'S'
+    .word 0x00 # TODO: up
+    .word '+'
+    .word 0x00 # TODO: down
+    .word '-'
+    
     .word 0 # End of actions
 
 BRANCH_ADDRESS:
     .skip 4
+
+.align 2
+key_pressed: 
+    .word 0 # pressed key
+    .word 0 # readed or not
+
+.align 2
+selected:
+    .word 0 # seleted recording
 
 .text
 
@@ -37,8 +51,7 @@ _start:
 	movi r8, 1
 	wrctl ctl0, r8 # enable global interrupts 
 
-loop:
-    br loop
+    br stopmode
 
 
 .section .exceptions, "ax"
@@ -62,8 +75,6 @@ interrupthandler:
     beq et, r0, IntrExit # if not, exit
 
     call keypresshandler
-    mov r4, r2 # set key pressed by user as input for keypressactions
-	call keypressactions
 
 IntrExit:
 
@@ -83,7 +94,7 @@ IntrExit:
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
 
-# Returns the key pressed by the user
+# save the last key press in memory location FLAG
 keypresshandler:
     movia r8, PS2_CONTROLLER1
 
@@ -94,7 +105,9 @@ waitforvalid:
     add r9, r9, r10 # check if valid
     beq r9, r0, waitforvalid # if not, loop
 
-    andi r2, r9, 0xFF
+    andi r4, r9, 0xFF
+    call keypressactions
+
     ret
     
 
@@ -118,13 +131,14 @@ keypressactions:
 findaction:
     ldw r17, 0(r16) # action key
     beq r17, r0, keypressactions_end # no valid key press mapping found
+    
     addi r16, r16, 8
     bne r17, r4, findaction
+    ldw r17, 4(r16) # get the key
     
-    # Found valid key press
-    subi r16, r16, 8
-    ldw ra, 4(r16)
-    ret
+    movia r18, key_pressed
+    stw r17, 0(r18) # save the key into key_pressed
+    stw r0, 4(r18) # set read to 0
 
 keypressactions_end:
 	ldw r16, 0(sp)
@@ -144,9 +158,9 @@ recordmode:
     call record
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br keypressactions_end
+    br stopmode
 
-playbackmode:
+playbackmode:   
 	movia r16, LED
 	movia r17, 0b10
 	stwio r0, 0(r16)
@@ -156,7 +170,7 @@ playbackmode:
     call play_audio
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    br keypressactions_end
+    br stopmode
 
 deletemode:
     # TODO
@@ -167,5 +181,5 @@ pausemode:
     br keypressactions_end
 
 stopmode:
-    # TODO
-    br keypressactions_end
+    # TODO: currently selected 
+    br stopmode
