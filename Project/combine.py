@@ -31,7 +31,7 @@ def read_exceptions(contents, label):
         instruction = contents.pop(0)
         if not(".section" in instruction and ".exceptions" in instruction):
             exceptions += instruction
-    return exceptions
+    return exceptions.strip() + "\n"
 
 
 output = read_data(playback_contents, "playback")
