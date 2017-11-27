@@ -128,11 +128,11 @@ playback_loop:
 
     mov r4, r2 # move up the pointer using return value from play_audio
 
-    ldw r17, 0(r16)
+    ldw r17, 0(r8)
     movia r18, 'P' # if pressed key not resume, then keep pausing
     beq r17, r18, playback_call_pasue
     
-    ldw r17, 0(r16)
+    ldw r17, 0(r8)
     movia r18, 'S' # if pressed key not resume, then keep pausing
     beq r17, r18, playback_stop_mode 
 
@@ -143,6 +143,8 @@ playback_call_pasue:
     br playback_loop
 
 record_mode:   
+    addi sp, sp, -4
+
     movia r8, cur_state
     movi r9, 1
     stw r9, 0(r8) # set cur_state to playback_mode
@@ -152,6 +154,8 @@ record_mode:
     stw r9, 4(r8) # set key_pressed as read
 
 	movia r4, free_ptr
+    mov r10, r4
+    stw r10, 0(sp) # store header pointer in stack
     call create_hdear
     mov r4, r2
 record_loop:    
@@ -159,11 +163,11 @@ record_loop:
 
     mov r4, r2 # move up the pointer using return value from play_audio
 
-    ldw r17, 0(r16)
+    ldw r17, 0(r8)
     movia r18, 'P' # if pressed key not resume, then keep pausing
     beq r17, r18, record_call_pasue
     
-    ldw r17, 0(r16)
+    ldw r17, 0(r8)
     movia r18, 'S' # if pressed key not resume, then keep pausing
     beq r17, r18, record_stopping # TODO: update header and free space
 
@@ -175,6 +179,12 @@ record_call_pasue:
 
 record_stopping:
     # TODO: update header
+    movia r8, free_ptr
+    stw r2, 0(r8) # update free pointer
+    ldw r10, 0(sp) # get header pointer from stack
+    stw r2, 4(r10) # update header next
+
+    addi sp, sp, 4
     br recording_stop_mode
 
 
