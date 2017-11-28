@@ -4,32 +4,6 @@
 .equ LED, 0xFF200000
 
 .data
-# define a list of keymappings for 
-# Recording mode -- R
-# Start/Resume recording -- D 
-# Pause recording -- P
-# Stop recording -- S
-# Playback mode -- V
-# Start/Resume playback -- D
-# Pause playback -- P
-# Stop (return to the beginning point) play back -- S
-ACTIONS_LIST:
-    .word 0x2D # R
-    .word 'R'
-    .word 0x2A # V
-    .word 'V'
-    .word 0x23 # D
-    .word 'D'
-    .word 0x4D # P
-    .word 'P'
-    .word 0x1B # S
-    .word 'S'
-    .word 0x00 # TODO: up
-    .word '+'
-    .word 0x00 # TODO: down
-    .word '-'
-    
-    .word 0 # End of actions
 
 BRANCH_ADDRESS:
     .skip 4
@@ -291,35 +265,93 @@ keypress_handler:
     movia r8, PS2_CONTROLLER1
 
 waitforvalid:
-    ldwio r9, 0(r8) # read input data (also ack interrupt autmatically)
+    ldwio r4, 0(r8) # read input data (also ack interrupt autmatically)
+    ldwio r5, 0(r8) # second character
 
     movia r10, 0x8000
-    and r9, r9, r10 # check if valid
+    and r9, r4, r10 # check if valid
     beq r9, r0, waitforvalid # if not, loop
 
-    andi r4, r9, 0xFF
+    andi r4, r4, 0xFF
+    andi r5, r5, 0xFF
     call keypress_actions
 
     ldw ra, 0(sp)
     addi sp, sp, 4
     ret
-    
+
+# define a list of keymappings for 
+# Recording mode -- R
+# Start/Resume recording -- D 
+# Pause recording -- P
+# Stop recording -- S
+# Playback mode -- V
+# Start/Resume playback -- D
+# Pause playback -- P
+# Stop (return to the beginning point) play back -- S
 keypress_actions:
     addi sp, sp, -12 # allocate stack space 
 	stw r16, 0(sp)
 	stw r17, 4(sp)
-    stw r18, 8(sp)
-    movia r16, ACTIONS_LIST
-    mov r17, r4
+    stw r18, 8(sp) 
+    
+    movi r16, 0x2D
+    beq r4, r16, R_key
 
-findaction:
-    ldw r17, 0(r16) # action key
-    beq r17, r0, keypressactions_end # no valid key press mapping found
+    movi r16, 0x2A
+    beq r4, r16, V_key
+
+    movi r16, 0x23
+    beq r4, r16, D_key
+
+    movi r16, 0x4D
+    beq r4, r16, P_key
+
+    movi r16, 0x1B
+    beq r4, r16, S_key
+
+    movi r16, 0xE0
+    beq r4, r16, up_or_down
     
-    addi r16, r16, 8
-    bne r17, r4, findaction
-    ldw r17, 4(r16) # get the key
-    
+    br keypressactions_end
+
+R_key:
+    movi r17, 'R'
+    br keypressactions_set_pressed
+
+V_key:
+    movi r17, 'V'
+    br keypressactions_set_pressed
+
+D_key:
+    movi r17, 'D'
+    br keypressactions_set_pressed
+
+P_key:
+    movi r17, 'P'
+    br keypressactions_set_pressed
+
+S_key:
+    movi r17, 'S'
+    br keypressactions_set_pressed
+
+up_or_down:
+    movi r16, 0x75
+    beq r4, r16, up_key
+
+    movi r16, 0x72
+    beq r4, r16, down_key
+
+    br keypressactions_end
+
+up_key:
+    movi r17, '+'
+    br keypressactions_set_pressed
+
+down_key:
+    movi r17, '-'
+
+keypressactions_set_pressed:
     movia r18, key_pressed
     stw r17, 0(r18) # save the key into key_pressed
     stw r0, 4(r18) # set read to 0
@@ -330,6 +362,7 @@ keypressactions_end:
     ldw r18, 8(sp)	
     addi sp, sp, 12 # allocate stack space 
     ret 
+    
 
 .section .exceptions, "ax"
 
