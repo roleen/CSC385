@@ -50,7 +50,7 @@ key_pressed:
 
 .align 2
 selected:
-    .word 0 # seleted recording, store pointer to it
+    .word recordings # seleted recording, store pointer to it
 
 .align 2
 recordings: # allocate space for storing recordings
@@ -259,6 +259,22 @@ create_hdear:
 
 delete_current_selection:
     ret
+
+
+
+next_selected:
+    addi sp, sp, -8
+    stw r16, 0(sp)
+    stw r17, 4(sp)
+
+    movia r16, selected
+    ldw r17, 8(r16)
+    stw r17, 0(r16)
+
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    addi sp, sp, 4
+    ret 
 
 
 # ######Interrupt Handler and Helper Functions Below
