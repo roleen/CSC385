@@ -10,6 +10,7 @@
 .equ SEVEN, 0x7
 .equ EIGHT, 0x7F
 .equ NINE, 0x6F
+.equ LED, 0xFF200000
 
 # takes a number between 0 and 99 and a segment sections between
 # 0 and 3 and displays the number on that segment section of the
@@ -141,3 +142,54 @@ break_digits:
     muli r2, r3, 10
     sub r2, r4, r2
     ret
+
+
+
+
+display_state_LED:
+    addi sp, sp, -4
+    movia r17, LED
+    
+    beq r0, r4, led0
+
+    movi r16, 1
+    beq r16, r4, led1
+
+    movi r16, 2
+    beq r16, r4, led2
+
+    movi r16, 3
+    beq r16, r4, led3
+
+    movi r16, 4
+    beq r16, r4, led4
+
+led0:
+    movi r16, 0b1
+    stwio r16, r(17)
+    br display_state_LED_end
+
+led1:
+    movi r16, 0b10
+    stwio r16, r(17)
+    br display_state_LED_end
+
+led2:
+    movi r16, 0b100
+    stwio r16, r(17)
+    br display_state_LED_end
+
+led3:
+    movi r16, 0b1000
+    stwio r16, r(17)
+    br display_state_LED_end
+
+led4:
+    movi r16, 0b10000
+    stwio r16, r(17)
+
+display_state_LED_end:
+    addi sp, sp, 4
+    ret
+
+

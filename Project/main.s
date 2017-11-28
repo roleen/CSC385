@@ -71,6 +71,9 @@ playback_stop_mode:
     movia r8, cur_state
     stw r0, 0(r8) # set cur_state to playbackstop
 
+    mov r4, r0
+    call display_state_LED
+
     movia r8, key_pressed
     movi r9, 1
     stw r9, 4(r8) # set key_pressed as read
@@ -112,6 +115,9 @@ playback_mode:
     movi r9, 1
     stw r9, 0(r8) # set cur_state to playback_mode
 
+    mov r4, r9
+    call display_state_LED
+
     movia r8, key_pressed
     movi r9, 1
     stw r9, 4(r8) # set key_pressed as read
@@ -145,6 +151,9 @@ record_mode:
     movia r8, cur_state
     movi r9, 3
     stw r9, 0(r8) # set cur_state to playback_mode
+
+    mov r4, r9
+    call display_state_LED
 
     movia r8, key_pressed
     movi r9, 1
@@ -195,6 +204,9 @@ pause_mode: # it's actually a function
     movia r16, cur_state
     movi r17, 4
     stw r17, 0(r16) # set cur_state to pasue
+
+    mov r4, r9
+    call display_state_LED
     
     movia r16, key_pressed
 pause_mode_loop:
@@ -216,6 +228,9 @@ recording_stop_mode:
     movia r8, cur_state
     movi r9, 2
     stw r9, 0(r8) # set cur_state to 2
+
+    mov r4, r9
+    call display_state_LED
     
     movia r8, key_pressed
     movi r9, 1
