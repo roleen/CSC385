@@ -77,6 +77,7 @@ playback_stop_mode:
 
 playback_stop_mode_loop:
     ldw r10, 0(r8)
+    ldw r11, 4(r8)
     
     movi r9, 'D'
     beq r10, r9, playback_mode
@@ -93,10 +94,12 @@ playback_stop_mode_loop:
     br playback_stop_mode_loop
 
 call_next_selected:
+    bne r0, r11, playback_stop_mode_loop
     call next_selected
     br playback_stop_mode_loop
 
 call_prev_selected:
+    bne r0, r11, playback_stop_mode_loop
     call prev_selected
     br playback_stop_mode_loop
 
@@ -256,6 +259,10 @@ next_selected:
     addi sp, sp, -8
     stw r16, 0(sp)
     stw r17, 4(sp)
+
+    movia r16, key_pressed
+    movi r17, 1
+    stw r17, 0(16) # set to readed
 
     movia r16, selected
     ldw r17, 8(r16) # get next from header pointer
