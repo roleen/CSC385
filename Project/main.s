@@ -70,12 +70,16 @@ _start:
 playback_stop_mode:
     movia r8, cur_state
     stw r0, 0(r8) # set cur_state to playbackstop
-    
+
     movia r8, key_pressed
     movi r9, 1
     stw r9, 4(r8) # set key_pressed as read
 
 playback_stop_mode_loop:
+    movia r10, selected
+    ldw r4, 0(r10)
+    call display_number
+    
     ldw r10, 0(r8)
     ldw r11, 4(r8)
     
@@ -89,7 +93,7 @@ playback_stop_mode_loop:
     beq r10, r9, call_next_selected
 
     movi r9, '-'
-    beq r10, r9, call_next_selected
+    beq r10, r9, call_prev_selected
 
     br playback_stop_mode_loop
 
