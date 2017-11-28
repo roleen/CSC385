@@ -81,6 +81,8 @@ _start:
 	movi r8, 1
 	wrctl ctl0, r8 # enable global interrupts 
 
+    call create_hdear # create the first header
+
     br playback_stop_mode
 
 # ############recoder states below
@@ -181,9 +183,11 @@ record_call_pasue:
 
 record_stopping:
     movia r8, free_ptr
-    stw r2, 0(r8) # update free pointer
     ldw r10, 0(sp) # get header pointer from stack
-    stw r2, 4(r10) # update header next
+    
+    stw r8, 12(r10) # update header prev
+    stw r2, 8(r10) # update header next
+    stw r2, 0(r8) # update free pointer
 
     addi sp, sp, 4
     br recording_stop_mode
@@ -247,6 +251,8 @@ create_hdear:
     stw r0, 0(r4) # length
     addi r4, 4 
     stw r0, 0(r4) # next pointer
+    addi r4, 4
+    stw r0, 0(r4) # prev pointer
     mov r2, r4 # rest to store audios
     
     addi r9, r9, 1 # increment id by 1 for next use
@@ -268,8 +274,8 @@ next_selected:
     stw r17, 4(sp)
 
     movia r16, selected
-    ldw r17, 8(r16)
-    stw r17, 0(r16)
+    ldw r17, 8(r16) # get next from header pointer
+    stw r17, 0(r16) # update current selected
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
