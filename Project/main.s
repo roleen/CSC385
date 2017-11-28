@@ -259,13 +259,11 @@ create_hdear:
     stw r9, 0(r8)
     
     ret 
-
-
-# ######Additional Helper functions
-
+    
 delete_current_selection:
     ret
 
+# ######Additional Helper functions
 
 
 next_selected:
