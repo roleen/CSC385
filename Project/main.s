@@ -84,8 +84,20 @@ playback_stop_mode_loop:
     movi r9, 'R'
     beq r10, r9, recording_stop_mode
 
-    # TODO: record selection
+    movi r9, '+'
+    beq r10, r9, call_next_selected
 
+    movi r9, '-'
+    beq r10, r9, call_next_selected
+
+    br playback_stop_mode_loop
+
+call_next_selected:
+    call next_selected
+    br playback_stop_mode_loop
+
+call_prev_selected:
+    call prev_selected
     br playback_stop_mode_loop
 
 playback_mode:   
@@ -254,6 +266,8 @@ next_selected:
     addi sp, sp, 4
     ret 
 
+prev_selected:
+    ret
 
 # ######Interrupt Handler and Helper Functions Below
 
