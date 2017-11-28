@@ -294,7 +294,7 @@ waitforvalid:
     ldwio r9, 0(r8) # read input data (also ack interrupt autmatically)
 
     movia r10, 0x8000
-    add r9, r9, r10 # check if valid
+    and r9, r9, r10 # check if valid
     beq r9, r0, waitforvalid # if not, loop
 
     andi r4, r9, 0xFF
@@ -310,6 +310,7 @@ keypress_actions:
 	stw r17, 4(sp)
     stw r18, 8(sp)
     movia r16, ACTIONS_LIST
+    mov r17, r4
 
 findaction:
     ldw r17, 0(r16) # action key
