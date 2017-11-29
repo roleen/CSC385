@@ -353,7 +353,27 @@ next_selected_end:
     ret 
 
 prev_selected:
-    ret
+    addi sp, sp, -8
+    stw r16, 0(sp)
+    stw r17, 4(sp)
+
+    movia r16, key_pressed
+    movi r17, 1
+    stw r17, 0(r16) # set to readed
+
+    movia r16, selected
+	ldw r16, 0(r16)
+    ldw r17, 12(r16) # get previous from header pointer
+    beq r17, r0, prev_selected_end # if null pointer, ignore
+    stw r17, 0(r16) # update current selected
+
+prev_selected_end:
+
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    addi sp, sp, 4
+    ret 
+
 
 # ######Interrupt Handler and Helper Functions Below
 
