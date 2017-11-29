@@ -23,12 +23,12 @@ key_pressed:
     .word 0 # read or not
 
 .align 2
-selected:
-    .word recordings # seleted recording, store pointer to it
-
-.align 2
 recordings: # allocate space for storing recordings
     .skip 1000000 # 16MB
+
+.align 2
+selected:
+    .word recordings # seleted recording, store pointer to it
 
 .align 2
 free_ptr: # pointer to the free space
@@ -36,7 +36,7 @@ free_ptr: # pointer to the free space
 
 .align 2
 id: # id of a recording, keep incrementing
-    .word 0    
+    .word 1
 
 .text
 
@@ -44,6 +44,12 @@ id: # id of a recording, keep incrementing
 
 _start: 
     movia sp, 4000000 # init sp
+
+	movia r20, recordings
+	movia r21, selected
+	ldw r21, 0(r21)
+	movia r22, free_ptr
+	ldw r22, 0(r22)
 
     movi r8, 1
     movia r9, PS2_CONTROLLER1
@@ -54,8 +60,6 @@ _start:
 
 	movi r8, 1
 	wrctl ctl0, r8 # enable global interrupts 
-
-    call create_hdear # create the first header
 
     br playback_stop_mode
 
@@ -80,12 +84,15 @@ playback_stop_mode:
 
 playback_stop_mode_loop:
     movia r10, selected
-    ldw r4, 0(r10)
+    ldw r10, 0(r10)
+	ldw r4, 0(r10)
     call display_number
     
     ldw r10, 0(r8)
     ldw r11, 4(r8)
-    
+
+ 	bne r0, r11, playback_stop_mode_loop
+
     movi r9, 'D'
     beq r10, r9, playback_mode
 
@@ -101,12 +108,10 @@ playback_stop_mode_loop:
     br playback_stop_mode_loop
 
 call_next_selected:
-    bne r0, r11, playback_stop_mode_loop
     call next_selected
     br playback_stop_mode_loop
 
 call_prev_selected:
-    bne r0, r11, playback_stop_mode_loop
     call prev_selected
     br playback_stop_mode_loop
 
@@ -142,11 +147,18 @@ playback_loop:
     br playback_loop
 
 playback_call_pasue:
-    call pause_mode
+    addi sp, sp, -4
+	stw r4, 0(sp)
+    
+	movi r4, 1
+	call pause_mode
+	
+	ldw r4, 0(sp)
+	addi sp, sp, 4
     br playback_loop
 
 record_mode:   
-    addi sp, sp, -4
+    addi sp, sp, -8
 
     movia r8, cur_state
     movi r9, 3
@@ -160,16 +172,24 @@ record_mode:
     stw r9, 4(r8) # set key_pressed as read
 
 	movia r4, free_ptr
+	ldw r4, 0(r4)
     mov r10, r4
     stw r10, 0(sp) # store header pointer in stack
-    call create_hdear
+	stw r8, 4(sp)
+
+    call create_header
+	
+	ldw r8, 4(sp)
     mov r4, r2
-record_loop:    
+	movia r5, free_ptr
+	ldw r5, 0(r5)
+record_loop:
     call record
 
     mov r4, r2 # move up the pointer using return value from play_audio
 
     ldw r17, 0(r8)
+
     movia r18, 'P' # if pressed key not resume, then keep pausing
     beq r17, r18, record_call_pasue
     
@@ -177,10 +197,17 @@ record_loop:
     movia r18, 'S' # if pressed key not resume, then keep pausing
     beq r17, r18, record_stopping # TODO: update header and free space
 
-    br playback_loop
+    br record_loop
 
 record_call_pasue:
-    call pause_mode
+	addi sp, sp, -4
+	stw r4, 0(sp)
+    
+	movi r4, 3
+	call pause_mode
+	
+	ldw r4, 0(sp)
+	addi sp, sp, 4
     br record_loop
 
 record_stopping:
@@ -191,15 +218,19 @@ record_stopping:
     stw r2, 8(r10) # update header next
     stw r2, 0(r8) # update free pointer
 
-    addi sp, sp, 4
+    addi sp, sp, 8
     br recording_stop_mode
 
 
 pause_mode: # it's actually a function
-    addi sp, sp, -12
-    stw r16, 0(sp)
-    stw r17, 4(sp)
-    stw r18, 8(sp)
+    addi sp, sp, -20
+	stw ra, 0(sp)
+    stw r16, 4(sp)
+    stw r17, 8(sp)
+    stw r18, 12(sp)
+	stw r19, 14(sp)
+
+	mov r19, r4
 
     movia r16, cur_state
     movi r17, 4
@@ -216,11 +247,16 @@ pause_mode_loop:
 
     movi r17, 1
     stw r17, 4(r16) # set as read
-    
-    ldw r16, 0(sp)
-    ldw r17, 4(sp)
-    ldw r18, 8(sp)
-    addi sp, sp, 12
+	
+	mov r4, r19 # set state indicator to previous
+    call display_state_LED
+
+	ldw ra, 0(sp)
+    ldw r16, 4(sp)
+    ldw r17, 8(sp)
+    ldw r18, 12(sp)
+	ldw r19, 16(sp)
+    addi sp, sp, 20
     ret
 
 
@@ -238,6 +274,9 @@ recording_stop_mode:
 
 recording_stop_mode_loop:
     ldw r10, 0(r8)
+	ldw r11, 4(r8)
+
+	bne r11, r0, recording_stop_mode_loop
     
     movi r9, 'D'
     beq r10, r9, record_mode
@@ -250,22 +289,24 @@ recording_stop_mode_loop:
 # ######Memory Management Below
 
 # input a pointer, and return the pointer after the header
-create_hdear:
+create_header:	
     movia r8, id
     ldw r9, 0(r8)
 
     stw r9, 0(r4) # id
-    addi r4, 4 
+    addi r4, r4, 4 
     stw r0, 0(r4) # length
-    addi r4, 4 
+    addi r4, r4, 4 
     stw r0, 0(r4) # next pointer
-    addi r4, 4
+    addi r4, r4, 4
     stw r0, 0(r4) # prev pointer
     mov r2, r4 # rest to store audios
-    
+	addi r4, r4, 4    
+
     addi r9, r9, 1 # increment id by 1 for next use
     stw r9, 0(r8)
-    
+	
+	mov r2, r4    
     ret 
     
 delete_current_selection:
@@ -281,9 +322,10 @@ next_selected:
 
     movia r16, key_pressed
     movi r17, 1
-    stw r17, 0(16) # set to readed
+    stw r17, 0(r16) # set to readed
 
     movia r16, selected
+	ldw r16, 0(r16)
     ldw r17, 8(r16) # get next from header pointer
     stw r17, 0(r16) # update current selected
 
@@ -303,14 +345,22 @@ keypress_handler:
     stw ra, 0(sp)
 
     movia r8, PS2_CONTROLLER1
+	movia r10, 0x8000
 
-waitforvalid:
-    ldwio r4, 0(r8) # read input data (also ack interrupt autmatically)
-    ldwio r5, 0(r8) # second character
+waitforvalid0:
+	ldwio r23, 0(r8) # read input data (also ack interrupt autmatically)
+    and r9, r23, r10 # check if valid
+    beq r9, r0, waitforvalid0 # if not, loop
 
-    movia r10, 0x8000
+waitforvalid1:
+	ldwio r4, 0(r8) # read input data (also ack interrupt autmatically)
     and r9, r4, r10 # check if valid
-    beq r9, r0, waitforvalid # if not, loop
+    beq r9, r0, waitforvalid1 # if not, loop
+
+waitforvalid2:
+	ldwio r5, 0(r8) # second character
+    and r9, r5, r10 # check if valid
+    beq r9, r0, waitforvalid2 # if not, loop
 
     andi r4, r4, 0xFF
     andi r5, r5, 0xFF
@@ -334,21 +384,35 @@ keypress_actions:
 	stw r16, 0(sp)
 	stw r17, 4(sp)
     stw r18, 8(sp) 
-    
-    movi r16, 0x2D
-    beq r4, r16, R_key
+	
+	mov r17, r5
+	slli r17, r17, 8
+	or r17, r17, r4
+   
+ 	movi r16, 0x2D
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+	beq r17, r16, R_key
 
     movi r16, 0x2A
-    beq r4, r16, V_key
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, V_key
 
     movi r16, 0x23
-    beq r4, r16, D_key
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, D_key
 
     movi r16, 0x4D
-    beq r4, r16, P_key
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, P_key
 
     movi r16, 0x1B
-    beq r4, r16, S_key
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, S_key
 
     movi r16, 0xE0
     beq r4, r16, up_or_down

@@ -2,11 +2,12 @@
 
 .global record
 
-# subroutine that reads one sample and stores it at the address given 
-# store location and increments the length in the header accordingly
+## subroutine that reads one sample & stores it at the address given 
+# store location & increments the length in the header accordingly
 # arguments:
-#   r4: pointer to store location
-#   r5: pointer to header
+#  r4: pointer to store location
+#  r5: pointer to header
+
 record:
     # save registers used on the stack
     addi sp, sp, -8
@@ -25,9 +26,11 @@ record:
     stw r17, 4(r4)
 
     # increment length of header by 8 bytes
-    ldw r17, 4(r4)
+    ldw r17, 4(r5)
     addi r17, r17, 8
-    stw r17, 4(r4)
+    stw r17, 4(r5)
+
+	addi r2, r4, 8
 
     # restore registers used from the stack
     ldw r16, 0(sp)

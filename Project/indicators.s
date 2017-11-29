@@ -12,6 +12,9 @@
 .equ NINE, 0x6F
 .equ LED, 0xFF200000
 
+.global display_number
+.global display_state_LED
+
 # takes a number between 0 and 99 and a segment sections between
 # 0 and 3 and displays the number on that segment section of the
 # seven segment display
@@ -147,8 +150,11 @@ break_digits:
 
 
 display_state_LED:
-    addi sp, sp, -4
-    movia r17, LED
+    addi sp, sp, -8
+ 	stw r16, 0(sp)
+    stw r17, 4(sp)
+	movia r17, LED
+	stwio r0, 0(r17)
     
     beq r0, r4, led0
 
@@ -166,30 +172,32 @@ display_state_LED:
 
 led0:
     movi r16, 0b1
-    stwio r16, r(17)
+    stwio r16, 0(r17)
     br display_state_LED_end
 
 led1:
     movi r16, 0b10
-    stwio r16, r(17)
+    stwio r16, 0(r17)
     br display_state_LED_end
 
 led2:
     movi r16, 0b100
-    stwio r16, r(17)
+    stwio r16, 0(r17)
     br display_state_LED_end
 
 led3:
     movi r16, 0b1000
-    stwio r16, r(17)
+    stwio r16, 0(r17)
     br display_state_LED_end
 
 led4:
     movi r16, 0b10000
-    stwio r16, r(17)
+    stwio r16, 0(r17)
 
 display_state_LED_end:
-    addi sp, sp, 4
+ 	ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    addi sp, sp, 8
     ret
 
 
