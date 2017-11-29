@@ -27,6 +27,10 @@ recordings: # allocate space for storing recordings
     .skip 1000000 # 16MB
 
 .align 2
+last: # pointer to the last recording
+    .word recordings 
+
+.align 2
 selected:
     .word recordings # seleted recording, store pointer to it
 
@@ -128,6 +132,8 @@ playback_mode:
     stw r9, 4(r8) # set key_pressed as read
 
 	movia r4, selected
+    ldw r4, 0(r4)
+    mov r5, r4
     
 playback_loop:    
     beq r4, r0, playback_stop_mode
@@ -211,12 +217,21 @@ record_call_pasue:
     br record_loop
 
 record_stopping:
-    movia r8, free_ptr
+    # link the new recording to the next of last
     ldw r10, 0(sp) # get header pointer from stack
     
+    movia r9, free_ptr
+    ldw r9, 0(r9)
+
+    movia r8, last
+    ldw r8, 0(r8)
     stw r8, 12(r10) # update header prev
-    stw r2, 8(r10) # update header next
-    stw r2, 0(r8) # update free pointer
+
+    beq r8, r0, record_stopping_end # if prev != NULL
+    stw r9, 8(r8) # set prev->next = current
+
+record_stopping_end:
+    stw r2, 0(r9) # update free pointer
 
     addi sp, sp, 8
     br recording_stop_mode
@@ -327,7 +342,10 @@ next_selected:
     movia r16, selected
 	ldw r16, 0(r16)
     ldw r17, 8(r16) # get next from header pointer
+    beq r17, r0, next_selected_end # if null pointer, ignore
     stw r17, 0(r16) # update current selected
+
+next_selected_end:
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
