@@ -29,11 +29,11 @@ def read_exceptions(contents, label):
 main_contents = read_input_file("main.s")
 playback_contents = read_input_file("playback.s")
 recorder_contents = read_input_file("recorder.s")
-indicator_contents = read_input_file("indicator.s")
+indicators_contents = read_input_file("indicators.s")
 
 output = read_data(playback_contents, "playback")
 output += read_data(recorder_contents, "recorder")
-output += read_data(indicator_contents, "indicator")
+output += read_data(indicators_contents, "indicators")
 output += read_data(main_contents, "main")
 
 output += "\n.global _start\n"
@@ -41,13 +41,13 @@ output += "\n.global _start\n"
 output += read_instructions(main_contents, "main")
 output += read_instructions(playback_contents, "playback")
 output += read_instructions(recorder_contents, "recorder")
-output += read_instructions(indicator_contents, "indicator")
+output += read_instructions(indicators_contents, "indicators")
 
 output += '\n.section .exceptions, "ax"\n'
 output += read_exceptions(main_contents, "main")
 output += read_exceptions(playback_contents, "playback")
 output += read_exceptions(recorder_contents, "recorder")
-output += read_exceptions(indicator_contents, "indicator")
+output += read_exceptions(indicators_contents, "indicators")
 
 filehandle = open("combined.s", "w")
 filehandle.write(output)

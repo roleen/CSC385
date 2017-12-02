@@ -478,8 +478,15 @@ keypress_actions:
 	ori r16, r16, 0xF0	
     beq r17, r16, S_key
 
-    movi r16, 0xE0
-    beq r4, r16, up_or_down
+    movi r16, 0x79
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, plus_key
+
+    movi r16, 0x7B
+	slli r16, r16, 8
+	ori r16, r16, 0xF0	
+    beq r17, r16, minus_key
     
     br keypressactions_end
 
@@ -503,20 +510,11 @@ S_key:
     movi r17, 'S'
     br keypressactions_set_pressed
 
-up_or_down:
-    movi r16, 0x75
-    beq r4, r16, up_key
-
-    movi r16, 0x72
-    beq r4, r16, down_key
-
-    br keypressactions_end
-
-up_key:
+plus_key:
     movi r17, '+'
     br keypressactions_set_pressed
 
-down_key:
+minus_key:
     movi r17, '-'
 
 keypressactions_set_pressed:
