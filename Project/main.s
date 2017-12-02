@@ -24,11 +24,11 @@ key_pressed:
 
 .align 2
 recordings: # allocate space for storing recordings
-    .skip 1000000 # 16MB
+    .skip 16000000 # 16MB
 
 .align 2
 last: # pointer to the last recording
-    .word recordings 
+    .word 0 
 
 .align 2
 selected:
@@ -47,13 +47,15 @@ id: # id of a recording, keep incrementing
 .global _start
 
 _start: 
-    movia sp, 4000000 # init sp
+    movia sp, 40000000# init sp
 
 	movia r20, recordings
 	movia r21, selected
 	ldw r21, 0(r21)
 	movia r22, free_ptr
 	ldw r22, 0(r22)
+	movia r19, last
+	ldw r19, 0(r19)
 
     movi r8, 1
     movia r9, PS2_CONTROLLER1
@@ -85,15 +87,16 @@ playback_stop_mode:
     movia r8, key_pressed
     movi r9, 1
     stw r9, 4(r8) # set key_pressed as read
-
-playback_stop_mode_loop:
+	
     movia r10, selected
     ldw r10, 0(r10)
 	ldw r4, 0(r10)
-    call display_number
-    
-    ldw r10, 0(r8)
-    ldw r11, 4(r8)
+	movi r5, 2
+    call display_number	
+	
+playback_stop_mode_loop:
+	ldw r10, 0(r8)
+    ldw r11, 4(r8)	
 
  	bne r0, r11, playback_stop_mode_loop
 
@@ -201,7 +204,7 @@ record_loop:
     
     ldw r17, 0(r8)
     movia r18, 'S' # if pressed key not resume, then keep pausing
-    beq r17, r18, record_stopping # TODO: update header and free space
+    beq r17, r18, record_stopping # update header and free space
 
     br record_loop
 
@@ -220,19 +223,19 @@ record_stopping:
     # link the new recording to the next of last
     ldw r10, 0(sp) # get header pointer from stack
     
-    movia r9, free_ptr
+    movia r9, last
     ldw r9, 0(r9)
 
-    movia r8, last
-    ldw r8, 0(r8)
-    stw r8, 12(r10) # update header prev
-
-    beq r8, r0, record_stopping_end # if prev != NULL
-    stw r9, 8(r8) # set prev->next = current
+    beq r9, r0, record_stopping_end # if prev != NULL
+    stw r10, 8(r9) # set prev->next = current
 
 record_stopping_end:
+	movia r9, free_ptr
     stw r2, 0(r9) # update free pointer
 
+	movia r9, last
+    stw r10, 0(r9) # update last pointer
+	
     addi sp, sp, 8
     br recording_stop_mode
 
@@ -305,23 +308,40 @@ recording_stop_mode_loop:
 
 # input a pointer, and return the pointer after the header
 create_header:	
-    movia r8, id
-    ldw r9, 0(r8)
+	addi sp, sp, -12
+	stw r16, 0(sp)
+	stw r17, 4(sp)
+	stw r18, 8(sp)
 
-    stw r9, 0(r4) # id
+
+    movia r16, id
+    ldw r17, 0(r16)
+
+    stw r17, 0(r4) # id
     addi r4, r4, 4 
     stw r0, 0(r4) # length
     addi r4, r4, 4 
     stw r0, 0(r4) # next pointer
     addi r4, r4, 4
-    stw r0, 0(r4) # prev pointer
-    mov r2, r4 # rest to store audios
-	addi r4, r4, 4    
+	stw r0, 0(r4) # prev pointer
 
-    addi r9, r9, 1 # increment id by 1 for next use
-    stw r9, 0(r8)
+	movia r18, last
+	ldw r18, 0(r18)
+	beq r18, r0, create_header_end # if last != NULL
+	stw r18, 0(r4) # prev = last # we always add to last of the list
+
+create_header_end:
+	addi r4, r4, 4   
+    addi r17, r17, 1 # increment id by 1 for next use
+    stw r17, 0(r16)
 	
 	mov r2, r4    
+
+		
+	ldw r16, 0(sp)
+	ldw r17, 4(sp)
+	ldw r18, 8(sp)
+	addi sp, sp, 12
     ret 
     
 delete_current_selection:
@@ -346,6 +366,9 @@ next_selected:
     stw r17, 0(r16) # update current selected
 
 next_selected_end:
+	mov r4, r17
+	movi r5, 2
+    call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
@@ -368,6 +391,9 @@ prev_selected:
     stw r17, 0(r16) # update current selected
 
 prev_selected_end:
+	mov r4, r17
+	movi r5, 2
+    call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
@@ -509,18 +535,28 @@ keypressactions_end:
 .section .exceptions, "ax"
 
 interrupthandler:
-    addi sp, sp, -44 # allocate stack space 
-    stw r2, 0(sp)
-	stw r8, 4(sp)
-    stw r9, 8(sp)
-	stw r10, 12(sp)
-	stw r11, 16(sp)
-	stw r12, 20(sp)
-	stw r13, 24(sp)
-	stw r14, 28(sp)
-	stw r15, 32(sp)
-    stw ra, 36(sp)
-	stw r4, 40(sp)
+    addi sp, sp, -80 # allocate stack space
+    stw ra, 0(sp)
+	stw r2, 4(sp)
+    stw r3, 8(sp)
+	stw r4, 12(sp)
+	stw r5, 16(sp)
+	stw r6, 20(sp)
+	stw r7, 24(sp)
+	stw r8, 28(sp)
+	stw r9, 32(sp)
+	stw r10, 36(sp)
+    stw r11, 40(sp)
+	stw r12, 44(sp)
+	stw r13, 48(sp)
+	stw r14, 52(sp)
+	stw r15, 56(sp)
+	stw r16, 60(sp)
+	stw r17, 64(sp)
+	stw r18, 68(sp)
+    stw r19, 72(sp)
+	stw r20, 76(sp)
+
 
     rdctl et, ctl4
     andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
@@ -530,19 +566,27 @@ interrupthandler:
 
 IntrExit:
 
-    ldw r2, 0(sp)
-	ldw r8, 4(sp)
-    ldw r9, 8(sp)
-	ldw r10, 12(sp)
-	ldw r11, 16(sp)
-	ldw r12, 20(sp)
-	ldw r13, 24(sp)
-	ldw r14, 28(sp)
-	ldw r15, 32(sp)
-    ldw ra, 36(sp)
-	ldw r4, 40(sp)
-
-	addi sp, sp, 44 # restore registers
+    ldw ra, 0(sp)
+	ldw r2, 4(sp)
+    ldw r3, 8(sp)
+	ldw r4, 12(sp)
+	ldw r5, 16(sp)
+	ldw r6, 20(sp)
+	ldw r7, 24(sp)
+	ldw r8, 28(sp)
+	ldw r9, 32(sp)
+	ldw r10, 36(sp)
+    ldw r11, 40(sp)
+	ldw r12, 44(sp)
+	ldw r13, 48(sp)
+	ldw r14, 52(sp)
+	ldw r15, 56(sp)
+	ldw r16, 60(sp)
+	ldw r17, 64(sp)
+	ldw r18, 68(sp)
+    ldw r19, 72(sp)
+	ldw r20, 76(sp)
+	addi sp, sp, 80 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
 
