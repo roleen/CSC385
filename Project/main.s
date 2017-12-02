@@ -137,6 +137,8 @@ playback_mode:
 	movia r4, selected
     ldw r4, 0(r4)
     mov r5, r4
+
+    addi r4, r4, 12 # move pointer to actual audio
     
 playback_loop:    
     beq r4, r0, playback_stop_mode
