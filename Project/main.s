@@ -24,7 +24,7 @@ key_pressed:
 
 .align 2
 recordings: # allocate space for storing recordings
-    .skip 16000000 # 16MB
+    .skip 20000000 # 20MB
 
 .align 2
 last: # pointer to the last recording
@@ -47,7 +47,7 @@ id: # id of a recording, keep incrementing
 .global _start
 
 _start: 
-    movia sp, 40000000# init sp
+    movia sp, 25000000# init sp
 
 	movia r20, recordings
 	movia r21, selected
@@ -95,6 +95,7 @@ playback_stop_mode:
     call display_number	
 	
 playback_stop_mode_loop:
+	movia r8, key_pressed
 	ldw r10, 0(r8)
     ldw r11, 4(r8)	
 
@@ -147,6 +148,7 @@ playback_loop:
 
     mov r4, r2 # move up the pointer using return value from play_audio
 
+	movia r8, key_pressed
     ldw r17, 0(r8)
     movia r18, 'P' # if pressed key not resume, then keep pausing
     beq r17, r18, playback_call_pasue
@@ -353,9 +355,10 @@ delete_current_selection:
 
 
 next_selected:
-    addi sp, sp, -8
+    addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
+	stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -365,22 +368,28 @@ next_selected:
 	ldw r16, 0(r16)
     ldw r17, 8(r16) # get next from header pointer
     beq r17, r0, next_selected_end # if null pointer, ignore
+
+	movia r16, selected
     stw r17, 0(r16) # update current selected
 
 next_selected_end:
-	mov r4, r17
+	movia r16, selected
+	ldw r16, 0(r16)
+	ldw r4, 0(r16)
 	movi r5, 2
     call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    addi sp, sp, 4
+	ldw ra, 8(sp)
+    addi sp, sp, 12
     ret 
 
 prev_selected:
-    addi sp, sp, -8
+    addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
+	stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -390,16 +399,21 @@ prev_selected:
 	ldw r16, 0(r16)
     ldw r17, 12(r16) # get previous from header pointer
     beq r17, r0, prev_selected_end # if null pointer, ignore
+
+	movia r16, selected
     stw r17, 0(r16) # update current selected
 
 prev_selected_end:
-	mov r4, r17
+	movia r16, selected
+	ldw r16, 0(r16)
+	ldw r4, 0(r16)
 	movi r5, 2
     call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    addi sp, sp, 4
+	ldw ra, 8(sp)
+    addi sp, sp, 12
     ret 
 
 
@@ -414,8 +428,8 @@ keypress_handler:
 	movia r10, 0x8000
 
 waitforvalid0:
-	ldwio r23, 0(r8) # read input data (also ack interrupt autmatically)
-    and r9, r23, r10 # check if valid
+	ldwio r4, 0(r8) # read input data ignore first byte
+    and r9, r4, r10 # check if valid
     beq r9, r0, waitforvalid0 # if not, loop
 
 waitforvalid1:
@@ -535,7 +549,7 @@ keypressactions_end:
 .section .exceptions, "ax"
 
 interrupthandler:
-    addi sp, sp, -80 # allocate stack space
+    addi sp, sp, -84 # allocate stack space
     stw ra, 0(sp)
 	stw r2, 4(sp)
     stw r3, 8(sp)
@@ -556,6 +570,7 @@ interrupthandler:
 	stw r18, 68(sp)
     stw r19, 72(sp)
 	stw r20, 76(sp)
+	stw r23, 80(sp)
 
 
     rdctl et, ctl4
@@ -586,7 +601,8 @@ IntrExit:
 	ldw r18, 68(sp)
     ldw r19, 72(sp)
 	ldw r20, 76(sp)
-	addi sp, sp, 80 # restore registers
+	ldw r23, 80(sp)
+	addi sp, sp, 84 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
 
