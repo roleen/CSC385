@@ -353,9 +353,10 @@ delete_current_selection:
 
 
 next_selected:
-    addi sp, sp, -8
+    addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
+    stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -365,22 +366,27 @@ next_selected:
 	ldw r16, 0(r16)
     ldw r17, 8(r16) # get next from header pointer
     beq r17, r0, next_selected_end # if null pointer, ignore
+    movia r16, selected
     stw r17, 0(r16) # update current selected
 
 next_selected_end:
-	mov r4, r17
+    movia r16, selected
+	ldw r16, 0(r16)
+	ldw r4, 0(r16)
 	movi r5, 2
     call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    addi sp, sp, 4
+    ldw ra, 8(sp)
+    addi sp, sp, 12
     ret 
 
 prev_selected:
-    addi sp, sp, -8
+    addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
+    stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -390,16 +396,20 @@ prev_selected:
 	ldw r16, 0(r16)
     ldw r17, 12(r16) # get previous from header pointer
     beq r17, r0, prev_selected_end # if null pointer, ignore
+    movia r16, selected
     stw r17, 0(r16) # update current selected
 
 prev_selected_end:
-	mov r4, r17
+    movia r16, selected
+	ldw r16, 0(r16)
+	ldw r4, 0(r16)
 	movi r5, 2
     call display_number	
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    addi sp, sp, 4
+    ldw ra, 8(sp)
+    addi sp, sp, 12
     ret 
 
 
@@ -414,8 +424,8 @@ keypress_handler:
 	movia r10, 0x8000
 
 waitforvalid0:
-	ldwio r23, 0(r8) # read input data (also ack interrupt autmatically)
-    and r9, r23, r10 # check if valid
+	ldwio r4, 0(r8) # read input data, first byte ignored
+    and r9, r4, r10 # check if valid
     beq r9, r0, waitforvalid0 # if not, loop
 
 waitforvalid1:
@@ -535,7 +545,7 @@ keypressactions_end:
 .section .exceptions, "ax"
 
 interrupthandler:
-    addi sp, sp, -80 # allocate stack space
+    addi sp, sp, -84 # allocate stack space
     stw ra, 0(sp)
 	stw r2, 4(sp)
     stw r3, 8(sp)
@@ -556,6 +566,7 @@ interrupthandler:
 	stw r18, 68(sp)
     stw r19, 72(sp)
 	stw r20, 76(sp)
+    stw r23, 80(sp)
 
 
     rdctl et, ctl4
@@ -586,7 +597,8 @@ IntrExit:
 	ldw r18, 68(sp)
     ldw r19, 72(sp)
 	ldw r20, 76(sp)
-	addi sp, sp, 80 # restore registers
+    ldw r23, 80(sp)
+	addi sp, sp, 84 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
 
