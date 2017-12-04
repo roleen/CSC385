@@ -7,6 +7,34 @@
 .global clear_characters
 .global add_graph_point
 
+# Example use
+# .global _start
+# _start:
+#     movia sp, 400000
+# 
+#     call clear_screen
+#     call clear_characters
+# 
+#     movia r16, 120
+#     movia r22, 50
+#     movia r23, -2
+# 
+# graphing:
+#     mov r4, r16
+#     call add_graph_point
+#     add r16, r16, r23
+#     ble r16, r0, increment
+#     bge r16, r22, decrement
+#     br graphing
+# 
+# increment:
+#     movia r23, 2
+#     br graphing
+# 
+# decrement:
+#     movia r23, -2
+#     br graphing
+
 # takes the y coordinate of the point to plot, plots it
 # at x = 0 and moves all the other plotted points right
 # by 1 pixel
