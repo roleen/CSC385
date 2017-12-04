@@ -24,7 +24,7 @@ key_pressed:
 
 .align 2
 recordings: # allocate space for storing recordings
-    .skip 20000000 # 20MB
+    .skip 40000000 # 40MB
 
 .align 2
 last: # pointer to the last recording
@@ -47,15 +47,9 @@ id: # id of a recording, keep incrementing
 .global _start
 
 _start: 
-    movia sp, 25000000# init sp
-
-	movia r20, recordings
-	movia r21, selected
-	ldw r21, 0(r21)
-	movia r22, free_ptr
-	ldw r22, 0(r22)
-	movia r19, last
-	ldw r19, 0(r19)
+    movia sp, 0x40000000# init sp
+	
+	call clear_screen	
 
     movi r8, 1
     movia r9, PS2_CONTROLLER1
@@ -352,6 +346,87 @@ delete_current_selection:
     ret
 
 # ######Additional Helper functions
+# states:
+            # 0 = playbackstop
+            # 1 = playback playing
+            # 2 = recordstop
+            # 3 = recording
+            # 4 = pause
+
+display_state_screen:
+	addi sp, sp, -16
+	stw r16, 0(sp)
+	stw r17, 4(sp)	
+
+	call clear_screen
+	movi r5, 50
+	
+	movia r16, cur_state
+	ldw r16, 0(r16)
+	beq r16, r0, display_playback_stop 
+	
+	movi r17, 1
+	beq r16, r17, display_playing
+	
+	movi r17, 2
+	beq r16, r17, display_record_stop
+
+	movi r17, 3
+	beq r16, r17, display_recording
+	
+	movi r17, 4
+	beq r16, r17, display_pause
+
+display_playback_stop:
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'P'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'l'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'a'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'y'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'b'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'a'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'c'
+	call write_character
+
+	movi r4, 50
+	movi r5, 50
+	movi r6, 'k'
+	call write_character
+
+display_state_screen_end:
+
+	ldw r16, 0(sp)
+	addi sp, sp, 16
+	ret
+
+
+
+
 
 
 next_selected:
