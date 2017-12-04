@@ -1,18 +1,10 @@
 .equ ADDR_VGA, 0x08000000
 .equ ADDR_CHAR, 0x09000000
 
-# .global _start
-# _start:
-#    movia sp, 4000000 # init sp
-#    call clear_screen
-#    call clear_characters
-#    movia r4, 1
-#    movia r5, 1
-#    movia r6, 'A'
-#    call write_character
-
-# loop:
-#    br loop
+.global write_pixel
+.global write_character
+.global clear_screen
+.global clear_characters
 
 # takes the (x, y) coordinates and a color value, and sets
 # the color of the (x, y) pixel on VGA display with that color
@@ -90,7 +82,7 @@ clear_characters:
     stw r17, 4(sp)
 
     movia r16, ADDR_CHAR
-    movia r17, 4800
+    movia r17, 7800
 
 remove_char_loop:
     stbio r0,0(r16)
