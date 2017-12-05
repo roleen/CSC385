@@ -3,7 +3,12 @@
 #include <stdlib.h>
 
 void write_character(int x, int y, char c);
+void add_graph_point(int y);
 
+void display_waveform(int soundvalue)
+{
+	return;
+}
 
 void display_zero_time()
 {
