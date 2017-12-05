@@ -12,11 +12,12 @@
 #   r2: pointer to the next sample
 play_audio:
     # save registers used on the stack
-    addi sp, sp, -16
+    addi sp, sp, -20
     stw r16, 0(sp)
     stw r17, 4(sp)
     stw r18, 8(sp)
 	stw r19, 12(sp)
+    stw ra, 16(sp)
 
     movia r16, ADDR_AUDIODACFIFO
 
@@ -40,13 +41,11 @@ waitforspace:
     addi r17, r5, 16
     ldw r18, 4(r5)
     add r17, r17, r18
-	
-	sub r18, r17, r2
-	movi r19, 8
-	div r18, r18, r19
-	movia r19, 44000
-	div r18, r18, r19
-	
+
+    mov r4, r2
+    mov r5, r17
+    call display_time_left # to display time left for the recording
+
     # set next pointer to 0 if potential next pointer goes beyond this recording
     ble r2, r17, restore_registers
     mov r2, r0
@@ -57,6 +56,7 @@ restore_registers:
     ldw r17, 4(sp)
     ldw r18, 8(sp)
 	ldw r19, 12(sp)
-    addi sp, sp, 16
+    ldw ra, 16(sp)
+    addi sp, sp, 20
 
     ret

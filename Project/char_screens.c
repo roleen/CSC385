@@ -1,21 +1,55 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 void write_character(int x, int y, char c);
+void add_graph_point(int y);
 
-/*
-void display_number(int num)
+void display_waveform(short soundvalue)
 {
-	char str[12];
-	sprintf(str, "%d", num);
-	size_t len = strlen(str);
-	int x = 30;
-	for (int i = 0; i < len; i++)
+ 	int y = (soundvalue / 0xFFFF) * 239;
+	add_graph_point(y);
+}
+
+void display_zero_time()
+{
+	write_character(21, 50, '0');
+	write_character(20, 50, '0');
+	write_character(19, 50, '0');
+}
+
+/* for display seconds (3 digits) left in playback 
+   r4 for the current position, r5 for the end */
+void display_time_left(int cur_position, int end)
+{
+	int sec = (end - cur_position) / (8 * 44000);
+	char buffer[12];
+	sprintf(buffer, "%d", sec);
+
+	if (isdigit(buffer[2])) 
 	{
-		write_character(x, 50, str[i]);
-		x++;
-	}	
-}*/
+		write_character(21, 50, buffer[2]);
+		write_character(20, 50, buffer[1]);
+		write_character(19, 50, buffer[0]);
+	} else {
+		if (isdigit(buffer[1])) 
+		{
+			write_character(21, 50, buffer[1]);
+			write_character(20, 50, buffer[0]);
+			write_character(19, 50, '0');
+		} else {
+			if (isdigit(buffer[0])) 
+			{
+			write_character(21, 50, buffer[1]);
+			write_character(20, 50, '0');
+			write_character(19, 50, '0');
+			} else {
+				display_zero_time();
+			}
+		} 
+	}
+}
+
 
 void playback_stop_c()
 {
