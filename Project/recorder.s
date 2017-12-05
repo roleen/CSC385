@@ -15,9 +15,12 @@ record:
     stw r17, 4(sp)
 
     # get one sample from input FIFO
+
+recording_loop:
     movia r16, ADDR_AUDIODACFIFO
     ldwio r17, 4(r16)      # Read fifospace register
     andi  r17, r17, 0xff    # Extract # of samples in Input Right Channel FIFO
+	beq r17, r0, recording_loop
     
     # store left and right FIFO's input sample to store location
     ldwio r17, 8(r16)

@@ -3,8 +3,8 @@
 .global play_audio
 
 # subroutine that reads the samples at the pointer in the store location,
-# writes the samples to the left and right output FIFO of the audio codec
-# and returns the pointer to the next sample (0 if at the end of recording).
+# writes the samples to the left a right output FIFO of the audio codec
+# a returns the pointer to the next sample (0 if at the end of recording).
 # arguments:
 #   r4: pointer to store location
 #   r5: pointer to header
@@ -16,6 +16,7 @@ play_audio:
     stw r16, 0(sp)
     stw r17, 4(sp)
     stw r18, 8(sp)
+	stw r19, 12(sp)
 
     movia r16, ADDR_AUDIODACFIFO
 
@@ -34,12 +35,18 @@ waitforspace:
     
     # get the next sample's potential pointer
     addi r2, r4, 8
-    
+
     # get the address of the end of this recording using header's length
     addi r17, r5, 16
     ldw r18, 4(r5)
     add r17, r17, r18
-
+	
+	sub r18, r17, r2
+	movi r19, 8
+	div r18, r18, r19
+	movia r19, 44000
+	div r18, r18, r19
+	
     # set next pointer to 0 if potential next pointer goes beyond this recording
     ble r2, r17, restore_registers
     mov r2, r0
@@ -49,6 +56,7 @@ restore_registers:
     ldw r16, 0(sp)
     ldw r17, 4(sp)
     ldw r18, 8(sp)
+	ldw r19, 12(sp)
     addi sp, sp, 16
 
     ret

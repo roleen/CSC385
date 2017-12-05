@@ -24,7 +24,7 @@ key_pressed:
 
 .align 2
 recordings: # allocate space for storing recordings
-    .skip 16000000 # 16MB
+    .skip 40000000 # 40MB
 
 .align 2
 last: # pointer to the last recording
@@ -44,18 +44,13 @@ id: # id of a recording, keep incrementing
 
 .text
 
-.global _start
+.global main
 
-_start: 
-    movia sp, 40000000# init sp
-
-	movia r20, recordings
-	movia r21, selected
-	ldw r21, 0(r21)
-	movia r22, free_ptr
-	ldw r22, 0(r22)
-	movia r19, last
-	ldw r19, 0(r19)
+main: 
+    movia sp, 0x40000000# init sp
+	
+	call clear_screen	
+	call clear_characters
 
     movi r8, 1
     movia r9, PS2_CONTROLLER1
@@ -83,6 +78,7 @@ playback_stop_mode:
 
     mov r4, r0
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -95,6 +91,7 @@ playback_stop_mode:
     call display_number	
 	
 playback_stop_mode_loop:
+	movia r8, key_pressed
 	ldw r10, 0(r8)
     ldw r11, 4(r8)	
 
@@ -129,6 +126,7 @@ playback_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -147,6 +145,7 @@ playback_loop:
 
     mov r4, r2 # move up the pointer using return value from play_audio
 
+	movia r8, key_pressed
     ldw r17, 0(r8)
     movia r18, 'P' # if pressed key not resume, then keep pausing
     beq r17, r18, playback_call_pasue
@@ -177,6 +176,7 @@ record_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -243,12 +243,14 @@ record_stopping_end:
 
 
 pause_mode: # it's actually a function
-    addi sp, sp, -20
+    addi sp, sp, -28
 	stw ra, 0(sp)
     stw r16, 4(sp)
     stw r17, 8(sp)
     stw r18, 12(sp)
-	stw r19, 14(sp)
+	stw r19, 16(sp)
+	stw r4, 20(sp)
+	stw r5, 24(sp)
 
 	mov r19, r4
 
@@ -258,6 +260,7 @@ pause_mode: # it's actually a function
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
     
     movia r16, key_pressed
 pause_mode_loop:
@@ -276,7 +279,9 @@ pause_mode_loop:
     ldw r17, 8(sp)
     ldw r18, 12(sp)
 	ldw r19, 16(sp)
-    addi sp, sp, 20
+	ldw r4, 20(sp)
+	ldw r5, 24(sp)
+    addi sp, sp, 28
     ret
 
 
@@ -287,6 +292,7 @@ recording_stop_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
     
     movia r8, key_pressed
     movi r9, 1
@@ -350,13 +356,71 @@ delete_current_selection:
     ret
 
 # ######Additional Helper functions
+# states:
+            # 0 = playbackstop
+            # 1 = playback playing
+            # 2 = recordstop
+            # 3 = recording
+            # 4 = pause
 
+display_state_screen:
+	addi sp, sp, -16
+	stw r16, 0(sp)
+	stw r17, 4(sp)	
+	stw ra, 8(sp)
+
+	call clear_screen
+	call clear_characters
+	movi r5, 50
+	
+	movia r16, cur_state
+	ldw r16, 0(r16)
+	beq r16, r0, display_playback_stop 
+	
+	movi r17, 1
+	beq r16, r17, display_playing
+	
+	movi r17, 2
+	beq r16, r17, display_record_stop
+
+	movi r17, 3
+	beq r16, r17, display_recording
+	
+	movi r17, 4
+	beq r16, r17, display_pause
+
+display_state_screen_end:
+	ldw r16, 0(sp)
+	ldw r17, 4(sp)
+	ldw ra, 8(sp)
+	addi sp, sp, 16
+	ret
+
+display_playback_stop:
+	call playback_stop_c
+	br display_state_screen_end
+
+display_playing:
+	call playing_c
+	br display_state_screen_end
+
+display_record_stop:
+	call record_stop_c
+	br display_state_screen_end
+
+display_recording:
+	call recording_c
+	br display_state_screen_end
+
+display_pause:
+	call pause_c
+	br display_state_screen_end
 
 next_selected:
     addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
-    stw ra, 8(sp)
+	stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -366,11 +430,12 @@ next_selected:
 	ldw r16, 0(r16)
     ldw r17, 8(r16) # get next from header pointer
     beq r17, r0, next_selected_end # if null pointer, ignore
-    movia r16, selected
+
+	movia r16, selected
     stw r17, 0(r16) # update current selected
 
 next_selected_end:
-    movia r16, selected
+	movia r16, selected
 	ldw r16, 0(r16)
 	ldw r4, 0(r16)
 	movi r5, 2
@@ -378,7 +443,7 @@ next_selected_end:
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    ldw ra, 8(sp)
+	ldw ra, 8(sp)
     addi sp, sp, 12
     ret 
 
@@ -386,7 +451,7 @@ prev_selected:
     addi sp, sp, -12
     stw r16, 0(sp)
     stw r17, 4(sp)
-    stw ra, 8(sp)
+	stw ra, 8(sp)
 
     movia r16, key_pressed
     movi r17, 1
@@ -396,11 +461,12 @@ prev_selected:
 	ldw r16, 0(r16)
     ldw r17, 12(r16) # get previous from header pointer
     beq r17, r0, prev_selected_end # if null pointer, ignore
-    movia r16, selected
+
+	movia r16, selected
     stw r17, 0(r16) # update current selected
 
 prev_selected_end:
-    movia r16, selected
+	movia r16, selected
 	ldw r16, 0(r16)
 	ldw r4, 0(r16)
 	movi r5, 2
@@ -408,7 +474,7 @@ prev_selected_end:
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
-    ldw ra, 8(sp)
+	ldw ra, 8(sp)
     addi sp, sp, 12
     ret 
 
@@ -424,7 +490,7 @@ keypress_handler:
 	movia r10, 0x8000
 
 waitforvalid0:
-	ldwio r4, 0(r8) # read input data, first byte ignored
+	ldwio r4, 0(r8) # read input data ignore first byte
     and r9, r4, r10 # check if valid
     beq r9, r0, waitforvalid0 # if not, loop
 
@@ -566,7 +632,7 @@ interrupthandler:
 	stw r18, 68(sp)
     stw r19, 72(sp)
 	stw r20, 76(sp)
-    stw r23, 80(sp)
+	stw r23, 80(sp)
 
 
     rdctl et, ctl4
@@ -597,7 +663,7 @@ IntrExit:
 	ldw r18, 68(sp)
     ldw r19, 72(sp)
 	ldw r20, 76(sp)
-    ldw r23, 80(sp)
+	ldw r23, 80(sp)
 	addi sp, sp, 84 # restore registers
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
