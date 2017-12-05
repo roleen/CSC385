@@ -10,10 +10,11 @@
 
 record:
     # save registers used on the stack
-    addi sp, sp, -12
+    addi sp, sp, -16
     stw r16, 0(sp)
     stw r17, 4(sp)
     stw ra, 8(sp)
+	stw r5, 12(sp)
 
     # get one sample from input FIFO
 
@@ -37,13 +38,14 @@ recording_loop:
 	addi r2, r4, 8
 
     # restore registers used from the stack
-    mov r4, r5
-    mov r5, r2
-    call display_time_left # use new pointer as end, and header as cur to calculate elasped time
+    # mov r4, r5
+    # mov r5, r2
+    # call display_time_left # use new pointer as end, and header as cur to calculate elasped time
 
     ldw r16, 0(sp)
     ldw r17, 4(sp)
     ldw ra, 8(sp)
-    addi sp, sp, 12
+	ldw r5, 12(sp)
+    addi sp, sp, 16
 
     ret

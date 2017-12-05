@@ -1,15 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 void write_character(int x, int y, char c);
 void add_graph_point(int y);
 
 void display_waveform(short soundvalue)
 {
+	printf("soundvalue: %d\n", soundvalue);
 	short maxsoundvalue = 32767;
 	
-	int scale = 100;
+	int scale = 25;
 	int scaledvalue = (soundvalue * scale) / maxsoundvalue;
 
 	int cap = 50; /* cap value in + or - directions */
@@ -17,6 +19,7 @@ void display_waveform(short soundvalue)
 	if (scaledvalue < -cap) scaledvalue = -cap;
 	
 	int y = 120 - scaledvalue;
+	printf("y: %d\n", y);
 	add_graph_point(y);
 }
 
@@ -49,7 +52,7 @@ void display_time_left(int cur_position, int end)
 		} else {
 			if (isdigit(buffer[0])) 
 			{
-			write_character(21, 50, buffer[1]);
+			write_character(21, 50, buffer[0]);
 			write_character(20, 50, '0');
 			write_character(19, 50, '0');
 			} else {

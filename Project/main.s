@@ -2,11 +2,16 @@
 .equ PS2_IRQ7, 0x80
 .equ audio_location, 0x100000 # TODO: temporary location
 .equ LED, 0xFF200000
+.equ timer, 0xFF202000 
+.equ timer_IRQ0, 0x1
+
 
 .data
 
-BRANCH_ADDRESS:
-    .skip 4
+.align 2
+.global period
+period: # flag of timed interrupt triggered
+    .word 0
 
 .align 2
 cur_state:
@@ -57,7 +62,20 @@ main:
     movia r9, PS2_CONTROLLER1
     stwio r8, 4(r9)
 
-    movi r8, PS2_IRQ7 # enable ps/2 controller 1 IRQ
+	movia r9, timer
+	
+	movia r8, 0xF080
+	stwio r8, 8(r9)
+	
+	movia r8, 0x2FA
+	stwio r8, 12(r9)
+
+	movi r8, 0b111
+	stwio r8, 4(r9)
+	
+    movi r8, PS2_IRQ7 # enable ps/2 controller 1 IRQ	
+	movi r9, timer_IRQ0
+	or r8, r8, r9
     wrctl ctl3, r8
 
 	movi r8, 1
@@ -130,6 +148,8 @@ call_delete_selected:
     br playback_stop_mode_loop
 
 playback_mode:   
+	call init_graph_points	
+
     movia r8, cur_state
     movi r9, 1
     stw r9, 0(r8) # set cur_state to playback_mode
@@ -137,7 +157,6 @@ playback_mode:
     mov r4, r9
     call display_state_LED
 	call display_state_screen
-    call display_zero_time
 
     movia r8, key_pressed
     movi r9, 1
@@ -188,7 +207,6 @@ record_mode:
     mov r4, r9
     call display_state_LED
 	call display_state_screen
-    call display_zero_time
 
     movia r8, key_pressed
     movi r9, 1
@@ -285,6 +303,7 @@ pause_mode_loop:
 	
 	mov r4, r19 # set state indicator to previous
     call display_state_LED
+	call display_state_screen
 
 	ldw ra, 0(sp)
     ldw r16, 4(sp)
@@ -520,36 +539,7 @@ prev_selected_end:
 
 # ######Interrupt Handler and Helper Functions Below
 
-# save the last key press in memory location FLAG
-keypress_handler:
-    addi sp, sp, -4
-    stw ra, 0(sp)
 
-    movia r8, PS2_CONTROLLER1
-	movia r10, 0x8000
-
-waitforvalid0:
-	ldwio r4, 0(r8) # read input data ignore first byte
-    and r9, r4, r10 # check if valid
-    beq r9, r0, waitforvalid0 # if not, loop
-
-waitforvalid1:
-	ldwio r4, 0(r8) # read input data (also ack interrupt autmatically)
-    and r9, r4, r10 # check if valid
-    beq r9, r0, waitforvalid1 # if not, loop
-
-waitforvalid2:
-	ldwio r5, 0(r8) # second character
-    and r9, r5, r10 # check if valid
-    beq r9, r0, waitforvalid2 # if not, loop
-
-    andi r4, r4, 0xFF
-    andi r5, r5, 0xFF
-    call keypress_actions
-
-    ldw ra, 0(sp)
-    addi sp, sp, 4
-    ret
 
 # define a list of keymappings for 
 # Recording mode -- R
@@ -674,11 +664,20 @@ interrupthandler:
 	stw r23, 80(sp)
 
 
-    rdctl et, ctl4
-    andi et, et, PS2_IRQ7 # check if interrupt pending from IRQ7
+    rdctl r8, ctl4
+    andi et, r8, PS2_IRQ7 # check if interrupt pending from IRQ7
+    bne et, r0, keypress_handler # if not, exit
+	
+    andi et, r8, timer_IRQ0 # check if interrupt pending from IRQ7
     beq et, r0, IntrExit # if not, exit
 
-    call keypress_handler
+	movia r8, period
+	movi r9, 1
+	stw r9, 0(r8)
+	
+	movia r8, timer
+	stwio r0, 0(r8)
+
 
 IntrExit:
 
@@ -707,3 +706,33 @@ IntrExit:
 	subi ea, ea, 4 # adjust exception address (where we should return) and return with eret
 	eret
 
+# save the last key press in memory location FLAG
+keypress_handler:
+    addi sp, sp, -4
+    stw ra, 0(sp)
+
+    movia r8, PS2_CONTROLLER1
+	movia r10, 0x8000
+
+waitforvalid0:
+	ldwio r4, 0(r8) # read input data ignore first byte
+    and r9, r4, r10 # check if valid
+    beq r9, r0, waitforvalid0 # if not, loop
+
+waitforvalid1:
+	ldwio r4, 0(r8) # read input data (also ack interrupt autmatically)
+    and r9, r4, r10 # check if valid
+    beq r9, r0, waitforvalid1 # if not, loop
+
+waitforvalid2:
+	ldwio r5, 0(r8) # second character
+    and r9, r5, r10 # check if valid
+    beq r9, r0, waitforvalid2 # if not, loop
+
+    andi r4, r4, 0xFF
+    andi r5, r5, 0xFF
+    call keypress_actions
+
+    ldw ra, 0(sp)
+    addi sp, sp, 4
+    br IntrExit
