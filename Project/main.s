@@ -110,6 +110,9 @@ playback_stop_mode_loop:
     movi r9, '-'
     beq r10, r9, call_prev_selected
 
+    movi r9, 'V'
+    beq r10, r9, call_delete_selected
+
     br playback_stop_mode_loop
 
 call_next_selected:
@@ -118,6 +121,11 @@ call_next_selected:
 
 call_prev_selected:
     call prev_selected
+    br playback_stop_mode_loop
+
+
+call_delete_selected:
+    call delete_current_selection
     br playback_stop_mode_loop
 
 playback_mode:   
@@ -356,6 +364,33 @@ create_header_end:
     ret 
     
 delete_current_selection:
+    addi sp, sp, -16
+    stw ra, 0(sp)
+    stw r16, 4(sp)
+    stw r17, 8(sp)
+    stw r18, 12(sp)
+
+    movia r16, selected
+    ldw r16, 0(r16)
+
+    ldw r17, 8(r16) # next
+    ldw r18, 12(r16) # prev
+    beq r17, r0, set_prev_next # if next == 0
+
+set_next_prev:
+    stw r18, 12(r17)
+    beq r18, r0, delete_current_selection_end
+
+set_prev_next:
+    stw r17, 8(r18)
+
+delete_current_selection_end:
+
+    ldw ra, 0(sp)
+    ldw r16, 4(sp)
+    ldw r17, 8(sp)
+    ldw r18, 12(sp)
+    addi sp, sp, 16
     ret
 
 # ######Additional Helper functions
