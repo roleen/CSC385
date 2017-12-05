@@ -44,12 +44,13 @@ id: # id of a recording, keep incrementing
 
 .text
 
-.global _start
+.global main
 
-_start: 
+main: 
     movia sp, 0x40000000# init sp
 	
 	call clear_screen	
+	call clear_characters
 
     movi r8, 1
     movia r9, PS2_CONTROLLER1
@@ -77,6 +78,7 @@ playback_stop_mode:
 
     mov r4, r0
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -124,6 +126,7 @@ playback_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -173,6 +176,7 @@ record_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
 
     movia r8, key_pressed
     movi r9, 1
@@ -239,12 +243,14 @@ record_stopping_end:
 
 
 pause_mode: # it's actually a function
-    addi sp, sp, -20
+    addi sp, sp, -28
 	stw ra, 0(sp)
     stw r16, 4(sp)
     stw r17, 8(sp)
     stw r18, 12(sp)
-	stw r19, 14(sp)
+	stw r19, 16(sp)
+	stw r4, 20(sp)
+	stw r5, 24(sp)
 
 	mov r19, r4
 
@@ -254,6 +260,7 @@ pause_mode: # it's actually a function
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
     
     movia r16, key_pressed
 pause_mode_loop:
@@ -272,7 +279,9 @@ pause_mode_loop:
     ldw r17, 8(sp)
     ldw r18, 12(sp)
 	ldw r19, 16(sp)
-    addi sp, sp, 20
+	ldw r4, 20(sp)
+	ldw r5, 24(sp)
+    addi sp, sp, 28
     ret
 
 
@@ -283,6 +292,7 @@ recording_stop_mode:
 
     mov r4, r9
     call display_state_LED
+	call display_state_screen
     
     movia r8, key_pressed
     movi r9, 1
@@ -357,8 +367,10 @@ display_state_screen:
 	addi sp, sp, -16
 	stw r16, 0(sp)
 	stw r17, 4(sp)	
+	stw ra, 8(sp)
 
 	call clear_screen
+	call clear_characters
 	movi r5, 50
 	
 	movia r16, cur_state
@@ -377,57 +389,32 @@ display_state_screen:
 	movi r17, 4
 	beq r16, r17, display_pause
 
-display_playback_stop:
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'P'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'l'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'a'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'y'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'b'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'a'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'c'
-	call write_character
-
-	movi r4, 50
-	movi r5, 50
-	movi r6, 'k'
-	call write_character
-
 display_state_screen_end:
-
 	ldw r16, 0(sp)
+	ldw r17, 4(sp)
+	ldw ra, 8(sp)
 	addi sp, sp, 16
 	ret
 
+display_playback_stop:
+	call playback_stop_c
+	br display_state_screen_end
 
+display_playing:
+	call playing_c
+	br display_state_screen_end
 
+display_record_stop:
+	call record_stop_c
+	br display_state_screen_end
 
+display_recording:
+	call recording_c
+	br display_state_screen_end
 
+display_pause:
+	call pause_c
+	br display_state_screen_end
 
 next_selected:
     addi sp, sp, -12
