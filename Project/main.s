@@ -49,6 +49,7 @@ id: # id of a recording, keep incrementing
 main: 
     movia sp, 0x40000000# init sp
 	
+    call init_graph_points
 	call clear_screen	
 	call clear_characters
 

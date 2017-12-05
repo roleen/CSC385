@@ -1,6 +1,13 @@
 .equ ADDR_VGA, 0x08000000
 .equ ADDR_CHAR, 0x09000000
 
+.data
+GRAPH_POINTS:
+    .skip 1280
+
+.text
+
+.global init_graph_points
 .global write_pixel
 .global write_character
 .global clear_screen
@@ -8,32 +15,33 @@
 .global add_graph_point
 
 # Example use
-# .global _start
-# _start:
-#     movia sp, 400000
-# 
-#     call clear_screen
-#     call clear_characters
-# 
-#     movia r16, 120
-#     movia r22, 50
-#     movia r23, -2
-# 
-# graphing:
-#     mov r4, r16
-#     call add_graph_point
-#     add r16, r16, r23
-#     ble r16, r0, increment
-#     bge r16, r22, decrement
-#     br graphing
-# 
-# increment:
-#     movia r23, 2
-#     br graphing
-# 
-# decrement:
-#     movia r23, -2
-#     br graphing
+.global _start
+_start:
+    movia sp, 400000
+
+    call init_graph_points
+    call clear_screen
+    call clear_characters
+
+    movia r16, 120
+    movia r22, 50
+    movia r23, -2
+
+graphing:
+    mov r4, r16
+    call add_graph_point
+    add r16, r16, r23
+    ble r16, r0, increment
+    bge r16, r22, decrement
+    br graphing
+
+increment:
+    movia r23, 2
+    br graphing
+
+decrement:
+    movia r23, -2
+    br graphing
 
 # takes the y coordinate of the point to plot, plots it
 # at x = 0 and moves all the other plotted points right
@@ -48,56 +56,57 @@ add_graph_point:
     stw r18, 12(sp)
     stw r19, 16(sp)
 
-    movia r16, ADDR_VGA
+    movia r16, GRAPH_POINTS
     mov r19, r4
 
     # previous x value
     movia r17, 318
 
-previous_column:
-    # next x value
-    mov r4, r17
-    addi r4, r4, 1
-
-    # current y value
-    movia r5, 239
-
-next_row:
-    # get the index of the previous pixel
-    muli r18, r5, 1024
-    add r18, r18, r17
-    add r18, r18, r17
+    # address of y value in GRAPH_POINTS
+    muli r18, r17, 4
     add r18, r18, r16
 
-    # get the color of the previous pixel
-    ldhio r6, 0(r18)
-
-    call write_pixel
-
-    addi r5, r5, -1
-    bge r5, r0, next_row
-    
-    addi r17, r17, -1
-    bge r17, r0, previous_column
-
-    # initialize first column to black
-    mov r4, r0
-    movia r5, 239
+    # set right most graph pixel to black
+    movia r4, 319
+    ldw r5, 1276(r16)
     mov r6, r0
-
-init_first_column:
-    # get the index of the previous pixel
-    muli r18, r5, 1024
-    add r18, r18, r17
-    add r18, r18, r17
-    add r18, r18, r16
-
+    blt r5, r0, shift_points_loop
     call write_pixel
 
-    addi r5, r5, -1
-    bge r5, r0, init_first_column
+shift_points_loop:
+    # next x value
+    addi r4, r17, 1
 
-    # plot the new y coordinate
+    # previous y value
+    ldw r5, 0(r18)
+
+    # update GRAPH_POINTS
+    stw r5, 4(r18)
+
+    # color of graph
+    movia r6, 0xF800
+
+    blt r5, r0, previous_column
+
+    # write new pixel to the right column
+    call write_pixel
+    
+    # write black to previous pixel
+    mov r4, r17
+    mov r6, r0
+    call write_pixel
+
+previous_column:
+    addi r17, r17, -1
+    addi r18, r18, -4
+
+    bge r17, r0, shift_points_loop
+
+    # add new y coordinate to GRAPH_POINTS
+    movia r17, GRAPH_POINTS
+    stw r19, 0(r17)
+
+    # plot new point
     mov r4, r0
     mov r5, r19
     movia r6, 0xF800
@@ -198,4 +207,27 @@ remove_char_loop:
     ldw r16, 0(sp)
     ldw r17, 4(sp)
     addi sp, sp, 8
+    ret
+
+# initializes the graph points to -1
+init_graph_points:
+    addi sp, sp, -12
+    stw r16, 0(sp)
+    stw r17, 4(sp)
+    stw r18, 8(sp)
+
+    movia r16, GRAPH_POINTS
+    movia r17, 320
+    movia r18, -1
+
+init_graph_points_loop:
+    stw r18, 0(r16)
+    addi r16, r16, 4
+    addi r17, r17, -1
+    bne r17, r0, init_graph_points_loop
+
+    ldw r16, 0(sp)
+    ldw r17, 4(sp)
+    ldw r18, 8(sp)
+    addi sp, sp, 12
     ret
