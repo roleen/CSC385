@@ -7,7 +7,16 @@ void add_graph_point(int y);
 
 void display_waveform(short soundvalue)
 {
- 	int y = (soundvalue / 0xFFFF) * 239;
+	short maxsoundvalue = 32767;
+	
+	int scale = 100;
+	int scaledvalue = (soundvalue * scale) / maxsoundvalue;
+
+	int cap = 50; /* cap value in + or - directions */
+	if (scaledvalue > cap) scaledvalue = cap;
+	if (scaledvalue < -cap) scaledvalue = -cap;
+	
+	int y = 120 - scaledvalue;
 	add_graph_point(y);
 }
 
