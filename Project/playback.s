@@ -12,11 +12,12 @@
 #   r2: pointer to the next sample
 play_audio:
     # save registers used on the stack
-    addi sp, sp, -16
+    addi sp, sp, -20
     stw r16, 0(sp)
     stw r17, 4(sp)
     stw r18, 8(sp)
 	stw r19, 12(sp)
+    stw ra, 16(sp)
 
     movia r16, ADDR_AUDIODACFIFO
 
@@ -55,6 +56,7 @@ restore_registers:
     ldw r17, 4(sp)
     ldw r18, 8(sp)
 	ldw r19, 12(sp)
-    addi sp, sp, 16
+    ldw ra, 16(sp)
+    addi sp, sp, 20
 
     ret
