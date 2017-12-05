@@ -5,9 +5,10 @@
 void write_character(int x, int y, char c);
 void add_graph_point(int y);
 
-void display_waveform(int soundvalue)
+void display_waveform(short soundvalue)
 {
-	return;
+ 	int y = (soundvalue / 0xFFFF) * 239;
+	add_graph_point(y);
 }
 
 void display_zero_time()
