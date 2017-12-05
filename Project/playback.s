@@ -40,13 +40,11 @@ waitforspace:
     addi r17, r5, 16
     ldw r18, 4(r5)
     add r17, r17, r18
-	
-	sub r18, r17, r2
-	movi r19, 8
-	div r18, r18, r19
-	movia r19, 44000
-	div r18, r18, r19
-	
+
+    mov r4, r2
+    mov r5, r17
+    call display_time_left # to display time left for the recording
+
     # set next pointer to 0 if potential next pointer goes beyond this recording
     ble r2, r17, restore_registers
     mov r2, r0
