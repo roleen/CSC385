@@ -15,33 +15,33 @@ GRAPH_POINTS:
 .global add_graph_point
 
 # Example use
-.global _start
-_start:
-    movia sp, 400000
+# .global _start
+# _start:
+#     movia sp, 400000
+# 
+#     call init_graph_points
+#     call clear_screen
+#     call clear_characters
+# 
+#     movia r16, 120
+#     movia r22, 50
+#     movia r23, -2
 
-    call init_graph_points
-    call clear_screen
-    call clear_characters
+# graphing:
+#     mov r4, r16
+#     call add_graph_point
+#     add r16, r16, r23
+#     ble r16, r0, increment
+#     bge r16, r22, decrement
+#     br graphing
 
-    movia r16, 120
-    movia r22, 50
-    movia r23, -2
+# increment:
+#     movia r23, 2
+#     br graphing
 
-graphing:
-    mov r4, r16
-    call add_graph_point
-    add r16, r16, r23
-    ble r16, r0, increment
-    bge r16, r22, decrement
-    br graphing
-
-increment:
-    movia r23, 2
-    br graphing
-
-decrement:
-    movia r23, -2
-    br graphing
+# decrement:
+#     movia r23, -2
+#     br graphing
 
 # takes the y coordinate of the point to plot, plots it
 # at x = 0 and moves all the other plotted points right
