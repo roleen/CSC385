@@ -179,6 +179,7 @@ record_mode:
     mov r4, r9
     call display_state_LED
 	call display_state_screen
+    call display_zero_time
 
     movia r8, key_pressed
     movi r9, 1
