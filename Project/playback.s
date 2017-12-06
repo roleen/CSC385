@@ -57,7 +57,7 @@ waitforspace:
     
 	movia r8, period
 	ldw r9, 0(r8)
-	beq r9, r0, skip_display
+	beq r9, r0, skip_display # do not play on every loop, play only timer is triggered
 	stw r0, 0(r8)
 	
 	mov r4, r2
